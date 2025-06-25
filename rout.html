@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ค้นหาเส้นทางรถสองแถวในโคราช (Dropdown)</title>
+<link rel="stylesheet" href="rout.css">
+</head>
+
+<body>
+    <h1>ค้นหาเส้นทางรถสองแถวในเมืองนครราชสีมา</h1>
+
+    <div id="search-container">
+        <div class="form-group">
+            <label for="originSelect">จุดต้นทาง:</label>
+            <select id="originSelect">
+                <option value="">เลือกจุดต้นทาง</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="destinationSelect">จุดปลายทาง:</label>
+            <select id="destinationSelect">
+                <option value="">เลือกจุดปลายทาง</option>
+            </select>
+        </div>
+        <button id="searchButton">ค้นหาเส้นทาง</button>
+    </div>
+
+    <div id="loading-message">
+        <p>กำลังค้นหาข้อมูล... โปรดรอสักครู่</p>
+    </div>
+
+    <div id="results-container">
+    </div>
+
+    <script src="rout.js" type="module">
+
+    </script>
+</body>
+
+</html>

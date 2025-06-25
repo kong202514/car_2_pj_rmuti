@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการเส้นทางรถสองแถว (นครราชสีมา)</title>
+    <link rel="stylesheet" href="addmin.css">
+</head>
+
+<body>
+    <h1>ระบบจัดการเส้นทางรถสองแถวในเมืองนครราชสีมา</h1>
+
+    <nav>
+        <button id="showSearchBtn">ค้นหาเส้นทาง</button>
+        <button id="showAddStopBtn">เพิ่มจุดจอดใหม่</button>
+        <button id="showManageRoutesBtn">จัดการเส้นทาง</button>
+    </nav>
+
+    <div id="search-container" class="container">
+        <h2>ค้นหาเส้นทาง</h2>
+        <div class="form-group">
+            <label for="originSelect">จุดต้นทาง:</label>
+            <select id="originSelect">
+                <option value="">เลือกจุดต้นทาง</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="destinationSelect">จุดปลายทาง:</label>
+            <select id="destinationSelect">
+                <option value="">เลือกจุดปลายทาง</option>
+            </select>
+        </div>
+        <button id="searchButton">ค้นหาเส้นทาง</button>
+        <div id="loading-message">
+            <p>กำลังค้นหาข้อมูล... โปรดรอสักครู่</p>
+        </div>
+        <div id="results-container"></div>
+    </div>
+
+    <div id="add-stop-container" class="container">
+        <h2>เพิ่มจุดจอดใหม่</h2>
+        <div class="form-group">
+            <label for="stopName">ชื่อจุดจอด:</label>
+            <input type="text" id="stopName" placeholder="เช่น ตลาดแม่กิมเฮง" required>
+        </div>
+        <div class="form-group">
+            <label for="stopLat">ละติจูด (Latitude):</label>
+            <input type="number" id="stopLat" step="any" placeholder="เช่น 14.9749" required>
+        </div>
+        <div class="form-group">
+            <label for="stopLon">ลองจิจูด (Longitude):</label>
+            <input type="number" id="stopLon" step="any" placeholder="เช่น 102.1384" required>
+        </div>
+        <button id="addStopButton">เพิ่มจุดจอด</button>
+        <div id="addStopStatus"></div>
+
+        <h3>จุดจอดทั้งหมด</h3>
+        <div id="allStopsList">
+        </div>
+    </div>
+
+    <div id="manage-routes-container" class="container">
+        <h2>จัดการเส้นทาง</h2>
+
+        <h3>เพิ่ม/แก้ไขเส้นทาง</h3>
+        <div class="form-group">
+            <label for="routeName">ชื่อเส้นทาง:</label>
+            <input type="text" id="routeName" placeholder="เช่น สาย 1 (หัวทะเล - สถานีรถไฟ)" required>
+        </div>
+        <div class="form-group">
+            <label for="routeColor">สีประจำเส้นทาง (เช่น #FF0000):</label>
+            <input type="text" id="routeColor" placeholder="เช่น #FF0000" value="#007bff">
+        </div>
+        <div class="form-group">
+            <label for="routeDescription">รายละเอียดเส้นทาง:</label>
+            <textarea id="routeDescription" rows="3"
+                placeholder="เช่น วิ่งจากหัวทะเล ผ่านตลาดแม่กิมเฮง ไปยังสถานีรถไฟ"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>จุดจอดในเส้นทาง (เรียงตามลำดับ):</label>
+            <div id="routeStopsContainer">
+            </div>
+            <button id="addRouteStopBtn" class="secondary">เพิ่มจุดจอดในเส้นทาง</button>
+        </div>
+
+        <button id="saveRouteButton">บันทึกเส้นทาง</button>
+        <button id="cancelEditRouteButton" class="secondary" style="display:none;">ยกเลิกการแก้ไข</button>
+        <div id="manageRouteStatus"></div>
+
+        <h3>เส้นทางทั้งหมด</h3>
+        <div id="allRoutesList">
+        </div>
+    </div>
+
+    <div id="status-message-global"></div>
+
+    <script  src="addmin.js" type="module">
+
+    </script>
+</body>
+
+</html>
