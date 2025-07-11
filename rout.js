@@ -1,7 +1,7 @@
+     // Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
-// Firebase configuration (แทนที่ด้วยข้อมูลจริงของคุณ)
 const firebaseConfig = {
     apiKey: "AIzaSyBXn8SyiVLWui1I7RbwiHAkARvjN3-TGU0",
     authDomain: "qazx-3fc6e.firebaseapp.com",
@@ -12,157 +12,148 @@ const firebaseConfig = {
     measurementId: "G-8RFTQKJH2Y"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// References to HTML elements
 const originSelect = document.getElementById('originSelect');
 const destinationSelect = document.getElementById('destinationSelect');
 const searchButton = document.getElementById('searchButton');
 const resultsContainer = document.getElementById('results-container');
 const loadingMessage = document.getElementById('loading-message');
 
-// เก็บข้อมูลจุดจอดทั้งหมดในหน่วยความจำ
 let allStops = [];
+let allRoutes = [];
+let allRouteSegments = [];
 
-// ฟังก์ชันสำหรับโหลดจุดจอดทั้งหมดและเติมลงใน Dropdown List
-async function loadStopsIntoDropdowns() {
-    try {
-        const stopsCollectionRef = collection(db, 'stops');
-        const querySnapshot = await getDocs(stopsCollectionRef);
-        allStops = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // เติมข้อมูลลงใน Dropdown Lists
-        populateDropdown(originSelect, allStops);
-        populateDropdown(destinationSelect, allStops);
-
-        console.log("โหลดข้อมูลจุดจอดทั้งหมดและเติมลงใน Dropdown Lists แล้ว");
-    } catch (error) {
-        console.error("ข้อผิดพลาดในการโหลดจุดจอดและเติม Dropdown Lists:", error);
-        resultsContainer.innerHTML = '<p class="no-results">ไม่สามารถโหลดข้อมูลจุดจอดได้ โปรดลองอีกครั้ง</p>';
-    }
-}
-
-// ฟังก์ชันช่วยในการเติม Dropdown
 function populateDropdown(selectElement, stopsData) {
-    // ล้าง options เก่า ยกเว้น option แรก "เลือก..."
     while (selectElement.children.length > 1) {
         selectElement.removeChild(selectElement.lastChild);
     }
-
-    // เพิ่ม options ใหม่
+    stopsData.sort((a, b) => a.name.localeCompare(b.name, 'th'));
     stopsData.forEach(stop => {
         const option = document.createElement('option');
-        option.value = stop.id; // ใช้ stop.id เป็น value
-        option.textContent = stop.name; // ใช้ stop.name เป็นข้อความที่แสดง
+        option.value = stop.id;
+        option.textContent = stop.name;
         selectElement.appendChild(option);
     });
 }
 
-// ฟังก์ชันหลักสำหรับค้นหาเส้นทาง
+async function loadAllStopsData() {
+    const snapshot = await getDocs(collection(db, 'stops'));
+    allStops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+async function loadAllRoutesData() {
+    const snapshot = await getDocs(collection(db, 'routes'));
+    allRoutes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+async function loadAllRouteSegmentsData() {
+    const snapshot = await getDocs(collection(db, 'route_segments'));
+    allRouteSegments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
 async function findRoute() {
-    resultsContainer.innerHTML = ''; // ล้างผลลัพธ์เก่า
-    loadingMessage.style.display = 'block'; // แสดงข้อความกำลังโหลด
+    resultsContainer.innerHTML = '';
+    loadingMessage.style.display = 'block';
 
-    const originStopId = originSelect.value;
-    const destinationStopId = destinationSelect.value;
+    const origin = originSelect.value;
+    const destination = destinationSelect.value;
 
-    if (!originStopId || !destinationStopId) {
+    if (!origin || !destination || origin === destination) {
         loadingMessage.style.display = 'none';
-        resultsContainer.innerHTML = '<p class="no-results">กรุณาเลือกจุดต้นทางและจุดปลายทาง</p>';
+        resultsContainer.innerHTML = '<p style="color:red;">กรุณาเลือกจุดต้นทางและปลายทางที่ไม่ซ้ำกัน</p>';
         return;
     }
 
-    // ตรวจสอบว่าเลือกจุดต้นทางและปลายทางเป็นจุดเดียวกันหรือไม่
-    if (originStopId === destinationStopId) {
-        loadingMessage.style.display = 'none';
-        resultsContainer.innerHTML = '<p class="no-results">จุดต้นทางและจุดปลายทางไม่สามารถเป็นจุดเดียวกันได้</p>';
-        return;
+    const directRoutes = allRoutes.filter(route => {
+        const stopIds = route.stops.map(s => s.stopId);
+        return stopIds.includes(origin) && stopIds.includes(destination);
+    });
+
+    if (directRoutes.length > 0) {
+        resultsContainer.innerHTML += '<h3>เส้นทางตรง:</h3>';
+        directRoutes.forEach(route => {
+            const sortedStops = [...route.stops].sort((a, b) => a.order - b.order);
+            const stopList = sortedStops.map((s, i) => {
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                return `<li>${i + 1}. ${stopData ? stopData.name : s.stopId}</li>`;
+            }).join('');
+            resultsContainer.innerHTML += `
+                <div>
+                    <div><b>สาย: ${route.name}</b> - ${route.description || 'ไม่มีคำอธิบาย'}</div>
+                    <ol>${stopList}</ol>
+                </div>`;
+        });
+    } else {
+        resultsContainer.innerHTML += '<p>ไม่พบเส้นทางตรง</p>';
     }
 
-    console.log("ค้นหาเส้นทางจาก:", originStopId, "ไป:", destinationStopId);
+    const transfers = [];
+    for (const route1 of allRoutes) {
+        if (!route1.stops.some(s => s.stopId === origin)) continue;
 
-    try {
-        const routesCollectionRef = collection(db, 'routes');
-        const querySnapshot = await getDocs(routesCollectionRef);
-        const allRoutes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        for (const route2 of allRoutes) {
+            if (route1.id === route2.id || !route2.stops.some(s => s.stopId === destination)) continue;
 
-        const foundRoutes = [];
+            const transferStopId = route1.stops
+                .map(s => s.stopId)
+                .find(id => route2.stops.some(s2 => s2.stopId === id) && id !== origin && id !== destination);
 
-        for (const route of allRoutes) {
-            const stopsInRoute = route.stops; // Array ของ { stopId, order }
-
-            // หา index ของจุดต้นทางและปลายทางใน array stops ของเส้นทางนี้
-            const originIndex = stopsInRoute.findIndex(s => s.stopId === originStopId);
-            const destinationIndex = stopsInRoute.findIndex(s => s.stopId === destinationStopId);
-
-            // ตรวจสอบว่าทั้งสองจุดอยู่ในเส้นทาง และจุดต้นทางมาก่อนจุดปลายทาง
-            if (originIndex !== -1 && destinationIndex !== -1 && originIndex < destinationIndex) {
-                foundRoutes.push(route);
+            if (transferStopId) {
+                const transferStop = allStops.find(s => s.id === transferStopId);
+                transfers.push({
+                    transferAt: transferStop?.name || transferStopId,
+                    route1,
+                    route2,
+                    transferStopId
+                });
             }
         }
-
-        displayFoundRoutes(foundRoutes, allStops); // ส่ง allStops ไปด้วยเพื่อใช้ในการแสดงชื่อจุดจอด
-    } catch (error) {
-        console.error("ข้อผิดพลาดในการค้นหาเส้นทาง:", error);
-        resultsContainer.innerHTML = `<p class="no-results">เกิดข้อผิดพลาดในการค้นหาเส้นทาง: ${error.message}</p>`;
-    } finally {
-        loadingMessage.style.display = 'none'; // ซ่อนข้อความกำลังโหลด
     }
+
+    if (transfers.length > 0) {
+        resultsContainer.innerHTML += '<h3>เส้นทางต่อรถ (1 จุด):</h3>';
+        transfers.forEach((t, i) => {
+            const stops1 = [...t.route1.stops].sort((a, b) => a.order - b.order);
+            const stops2 = [...t.route2.stops].sort((a, b) => a.order - b.order);
+
+            const stopList1 = stops1.map((s, idx) => {
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                const mark = s.stopId === origin ? '✅ ' : (s.stopId === t.transferStopId ? '➡️ ' : '');
+                return `<li>${mark}. ${stopData ? stopData.name : s.stopId}</li>`;
+            }).join('');
+
+            const stopList2 = stops2.map((s, idx) => {
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                const mark = s.stopId === t.transferStopId ? '➡️ ' : (s.stopId === destination ? '🏁 ' : '');
+                return `<li>${mark}${idx + 1}. ${stopData ? stopData.name : s.stopId}</li>`;
+            }).join('');
+
+            resultsContainer.innerHTML += `
+                <div>
+                    <div><b>แผนที่ ${i + 1}</b>: ขึ้นสาย ${t.route1.name}</div>
+                    <div>จุดต่อรถ: <strong>${t.transferAt}</strong></div>
+                    <div>ต่อไปสาย ${t.route2.name}</div>
+                    <div>จุดจอดสายแรก:</div>
+                    <ol>${stopList1}</ol>
+                    <div>จุดจอดสายที่สอง:</div>
+                    <ol>${stopList2}</ol>
+                </div>`;
+        });
+    } else {
+        resultsContainer.innerHTML += '<p>ไม่พบเส้นทางต่อรถ</p>';
+    }
+
+    loadingMessage.style.display = 'none';
 }
 
-// ฟังก์ชันสำหรับแสดงผลลัพธ์เส้นทางที่พบ (เหมือนเดิม)
-async function displayFoundRoutes(routes, allStopsData) {
-    if (routes.length === 0) {
-        resultsContainer.innerHTML = '<p class="no-results">ไม่พบเส้นทางตรงที่เชื่อมต่อจุดต้นทางและจุดปลายทาง</p>';
-        return;
-    }
-
-    let routeCount = 0;
-    for (const route of routes) {
-        routeCount++;
-        const routeCard = document.createElement('div');
-        routeCard.classList.add('route-card');
-
-        const routeName = document.createElement('h3');
-        routeName.textContent = `เส้นทางที่ ${routeCount}: ${route.name}`;
-        routeCard.appendChild(routeName);
-
-        const routeDescription = document.createElement('p');
-        routeDescription.textContent = `รายละเอียด: ${route.description}`;
-        routeCard.appendChild(routeDescription);
-
-        const stopListTitle = document.createElement('h4');
-        stopListTitle.textContent = 'จุดจอดในเส้นทางนี้:';
-        routeCard.appendChild(stopListTitle);
-
-        const stopList = document.createElement('ol'); // ใช้ <ol> สำหรับลำดับ
-        stopList.classList.add('stop-list');
-
-        // เรียงลำดับจุดจอดตาม 'order' ก่อนแสดง
-        const sortedStops = [...route.stops].sort((a, b) => a.order - b.order);
-
-        for (const stopRef of sortedStops) {
-            const stopId = stopRef.stopId;
-            const stopData = allStopsData.find(s => s.id === stopId); // หาข้อมูลจุดจอดจาก allStops
-
-            const stopItem = document.createElement('li');
-            if (stopData) {
-                stopItem.textContent = stopData.name;
-            } else {
-                stopItem.textContent = `ไม่พบข้อมูลจุดจอด (ID: ${stopId})`;
-                stopItem.style.color = 'red'; // เน้นว่าไม่พบข้อมูล
-            }
-            stopList.appendChild(stopItem);
-        }
-        routeCard.appendChild(stopList);
-        resultsContainer.appendChild(routeCard);
-    }
-}
-
-// Event Listener สำหรับปุ่มค้นหา
 searchButton.addEventListener('click', findRoute);
 
-// โหลดข้อมูลจุดจอดทั้งหมดและเติมลงใน Dropdown Lists เมื่อหน้าเว็บโหลดเสร็จสมบูรณ์
-document.addEventListener('DOMContentLoaded', loadStopsIntoDropdowns);
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadAllStopsData();
+    await loadAllRoutesData();
+    await loadAllRouteSegmentsData();
+    populateDropdown(originSelect, allStops);
+    populateDropdown(destinationSelect, allStops);
+});
