@@ -1,0 +1,462 @@
+// Import Firebase SDKs ที่จำเป็น
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js";
+// *** สำคัญ: เพิ่ม Firestore SDK และ writeBatch ที่นี่ ***
+import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+// กำหนด Firebase Configuration ของคุณ (แทนที่ด้วยข้อมูลจริงของคุณ)
+const firebaseConfig = {
+    apiKey: "AIzaSyBXn8SyiVLWui1I7RbwiHAkARvjN3-TGU0",
+    authDomain: "qazx-3fc6e.firebaseapp.com",
+    projectId: "qazx-3fc6e",
+    storageBucket: "qazx-3fc6e.firebasestorage.app",
+    messagingSenderId: "101969041040",
+    appId: "1:101969041040:web:a578a1b724e1ebf7f9aa15",
+    measurementId: "G-8RFTQKJH2Y"
+};
+
+// เริ่มต้น Firebase App
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app); // สามารถลบออกได้หากไม่ใช้งาน Analytics
+
+// รับ Instance ของ Firestore Database
+const db = getFirestore(app);
+
+// อ้างอิง Element สำหรับแสดงสถานะ
+const seedStatusDiv = document.getElementById('seedStatus');
+
+// ฟังก์ชันสำหรับแสดงข้อความสถานะ
+const showSeedStatus = (message, type) => {
+    seedStatusDiv.textContent = message;
+    seedStatusDiv.className = `status-message status-${type}`;
+};
+
+// ฟังก์ชันสำหรับหา ID ล่าสุดที่เป็นตัวเลขและสร้าง ID ถัดไป
+async function generateNextNumericId(collectionRef) {
+    let maxId = 0;
+    const querySnapshot = await getDocs(collectionRef);
+    querySnapshot.forEach(doc => {
+        const docId = parseInt(doc.id, 10);
+        if (!isNaN(docId) && docId > maxId) {
+            maxId = docId;
+        }
+    });
+    return String(maxId + 1);
+}
+
+// ฟังก์ชันสำหรับลบข้อมูลทั้งหมดใน Collection ก่อน Seed ใหม่ (ใช้ด้วยความระมัดระวัง!)
+async function clearCollection(collectionName) {
+    console.log(`กำลังเคลียร์ Collection '${collectionName}'...`);
+    const collectionRef = collection(db, collectionName);
+    const q = await getDocs(collectionRef);
+    const batch = writeBatch(db);
+    q.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+    console.log(`เคลียร์ Collection '${collectionName}' สำเร็จ.`);
+}
+
+// ฟังก์ชันสำหรับเพิ่มข้อมูลเริ่มต้น (Seeding Data)
+async function seedInitialData() {
+    showSeedStatus("กำลังเพิ่มข้อมูลเริ่มต้นลงใน Firestore...", "info");
+    console.log("กำลังเพิ่มข้อมูลเริ่มต้นลงใน Firestore...");
+
+    try {
+        // --- (ตัวเลือกเสริม: เคลียร์ข้อมูลเก่าออกก่อน) ---
+        // หากต้องการเริ่มต้นใหม่ทุกครั้งที่รัน Seed ให้เปิดใช้งาน 3 บรรทัดนี้
+        if (confirm("ต้องการล้างข้อมูลเดิมใน Firestore (stops, routes, route_segments) ก่อนหรือไม่?")) {
+            await clearCollection('route_segments');
+            await clearCollection('routes');
+            await clearCollection('stops');
+            showSeedStatus("เคลียร์ข้อมูลเก่าสำเร็จ.", "success");
+        }
+
+
+        // Mapping ระหว่างชื่อจุดจอดกับ ID ตัวเลขที่สร้างขึ้น
+        const stopNameToIdMap = {};
+
+        // ----------------------------------------------------
+        // Collection: stops (จุดจอดรถ)
+        // ----------------------------------------------------
+        const stopsCollection = collection(db, 'stops');
+
+        // ข้อมูลจุดจอด พร้อมชื่อภาษาไทย
+        const rawInitialStops = [
+            // { name: 'หัวทะเล', latitude: 14.9749, longitude: 102.1384 },
+            { name: '30 กันยา' },
+            { name: 'เทคโนฯ ราชมงคล' },
+            { name: 'ราชภัฏ' },
+            { name: 'ประตูน้ำ' },
+            { name: 'วัดบูรพ์' },
+            { name: 'หลักเมือง' },
+            { name: 'คลังใหม่' },
+            { name: 'อนุสาวรีย์ย่าโม' },
+            { name: 'ตลาดแม่กิมเฮง' },
+            { name: 'แยกเต๊กฮะ' },
+            { name: 'การไฟฟ้า' },
+            { name: 'หัวรถไฟ' },
+            { name: 'ชลประทาน' },
+            { name: 'สุรนารีวิลเลจ' },
+            { name: 'มหาชัย' },
+            { name: 'รร.บุญวัฒนา' },
+            { name: 'หัวทะเล' },
+            { name: 'ประตูพลล้าน' },
+            { name: 'รร.รวมมิตร' },
+            { name: 'คลังเก่า' },
+            { name: 'บขส.เก่า' },
+            { name: 'เทคนิค' },
+            { name: 'รร.สีมาธานี' },
+            { name: 'สวนพริกไทย' },
+            { name: 'ศรีษะละเลิง' },
+            { name: 'วัดสระแก้ว' },
+            { name: 'บ้านเดื่อ' },
+            { name: 'สนามม้า' },
+            { name: 'สนามกีฬาค่ายฯ' },
+            { name: 'รร.เมืองฯ' },
+            { name: 'รร.สุรนารีฯ' },
+            { name: 'รพ.มหาราช' },
+            { name: 'สนามกีฬากลาง' },
+            { name: 'ชพน.' },
+            { name: 'จอหอ' },
+            { name: 'รร.บุญเหลือวิทยานุสรณ์' },
+            { name: 'วัดพายัพ' },
+            { name: 'ศาลากลาง' },
+            { name: 'กองเมือง' },
+            { name: 'ประตูผี' },
+            { name: 'ดูโฮม' },
+            { name: 'เขตอุตสาหกรรมสุรนารี' },
+            { name: 'บ้านเกาะ' },
+            { name: 'ไอทีพลาซ่า' },
+            { name: 'สามแยกอุดร' },
+            { name: 'เดอะมอลล์' },
+            { name: 'โลตัส' },
+            { name: 'สามแยกปักฯ' },
+            { name: 'เซฟวัน' },
+            { name: 'การเคหะ' },
+            { name: 'สถานีจิระ' },
+            { name: 'บิ๊กซี' },
+            { name: 'บขส.ใหม่' },
+            { name: 'แมคโคร' },
+            { name: 'ประโดก' },
+            { name: 'วัดป่าสาละวัน' },
+            { name: 'ตลาดย่าโม' },
+            { name: 'เรือนจำ' },
+            { name: 'ทุ่งสว่าง' },
+            { name: 'กองบิน 1' },
+            { name: 'หนองไผ่ล้อม' },
+            { name: 'แยกหัวรถไฟ' },
+            { name: 'สถานีดับเพลิง' },
+            { name: 'คลังพลาซ่าใหม่' },
+            { name: 'วัดศาลาลอย' },
+            { name: 'ค่ายสุรนารี' },
+            { name: 'รพ.ค่ายฯ' },
+            { name: 'บุ่งตาหลัว' },
+            { name: 'บชร.2' },
+            { name: 'หนองไผ่' },
+            { name: 'ค่ายสุรธรรมพิทักษ์' },
+            { name: 'พะไล' },
+            { name: 'ดอนขวาง' },
+            { name: 'รร.โคราชพิทยาคม' },
+            { name: 'วัดเลียบ' },
+            { name: 'ประกันสังคม' },
+            { name: 'ท่าช้าง' },
+            { name: 'สนามบิน (หนองเต็ง)' },
+            { name: 'ตลาดสุรนคร' },
+            { name: 'ประปา' },
+            { name: 'หนองโสน' },
+            { name: 'หนองปรือ' },
+            { name: 'หนองพลวงมะนาว' }
+
+
+
+        ];
+        let stopDatalatitude = 0
+        let stopDatalongitude = 0
+        // เพิ่มข้อมูล stops และเก็บ ID ตัวเลขลงใน stopNameToIdMap
+        for (const stopData of rawInitialStops) {
+            const stopId = await generateNextNumericId(stopsCollection); // สร้าง ID เป็นตัวเลข
+            await setDoc(doc(stopsCollection, stopId), {
+                name: stopData.name,
+                latitude: stopDatalatitude,
+                longitude: stopDatalongitude
+            });
+            stopNameToIdMap[stopData.name] = stopId; // เก็บชื่อจุดจอด -> ID เพื่อใช้อ้างอิง
+            console.log(`[Stops] เพิ่มจุดจอด: ${stopData.name} (ID: ${stopId})`);
+        }
+        console.log("---------------------------------------");
+
+        // ----------------------------------------------------
+        // Collection: routes (เส้นทางรถสองแถว)
+        // ----------------------------------------------------
+        const routesCollection = collection(db, 'routes');
+        const routeSegmentsCollection = collection(db, 'route_segments');
+
+        // ข้อมูลเส้นทาง พร้อมชื่อภาษาไทย
+        const initialRoutes = [
+            {
+                name: 'สาย 1 (เหลือง เขียว)',
+                color: '#FFFF00', // เหลือง
+                description: 'วิ่งจาก 30 กันยา ผ่านเทคโนฯ ราชมงคล ไปยังสุรนารีวิลเลจ',
+                stopNames: [
+                    '30 กันยา', 'เทคโนฯ ราชมงคล', 'ราชภัฏ', 'ประตูน้ำ', 'วัดบูรพ์',
+                    'หลักเมือง', 'คลังใหม่', 'อนุสาวรีย์ย่าโม', 'ตลาดแม่กิมเฮง',
+                    'แยกเต๊กฮะ', 'การไฟฟ้า', 'หัวรถไฟ', 'ชลประทาน', 'สุรนารีวิลเลจ'
+                ]
+            },
+            {
+                name: 'สาย 1 (ขาว เหลือง)',
+                color: '#FFFFFF', // ขาว (ใช้เป็นสีหลักถ้าไม่มีสีอื่นเด่น)
+                description: 'วิ่งจากมหาชัย ผ่านเทคโนฯ ราชมงคล ไปยังสุรนารีวิลเลจ',
+                stopNames: [
+                    'มหาชัย', 'เทคโนฯ ราชมงคล', 'ราชภัฏ', 'ประตูน้ำ', 'วัดบูรพ์',
+                    'หลักเมือง', 'คลังใหม่', 'อนุสาวรีย์ย่าโม', 'ตลาดแม่กิมเฮง',
+                    'แยกเต๊กฮะ', 'การไฟฟ้า', 'หัวรถไฟ', 'ชลประทาน', 'สุรนารีวิลเลจ'
+                ]
+            },
+            {
+                name: 'สาย 2 (เลือดหมู ขาว)',
+                color: '#8B0000', // เลือดหมู
+                description: 'วิ่งจาก รร.บุญวัฒนา ผ่านหัวทะเล ไปยังศรีษะละเลิง',
+                stopNames: [
+                    'รร.บุญวัฒนา', 'หัวทะเล', 'ประตูพลล้าน', 'รร.รวมมิตร', 'คลังเก่า',
+                    'คลังใหม่', 'อนุสาวรีย์ย่าโม', 'ตลาดแม่กิมเฮง', 'บขส.เก่า', 'เทคนิค',
+                    'การไฟฟ้า', 'หัวรถไฟ', 'รร.สีมาธานี', 'สวนพริกไทย', 'ศรีษะละเลิง'
+                ]
+            },
+            {
+                name: 'สาย 3 (เลือดหมู ขาว)',
+                color: '#8B0000', // เลือดหมู
+                description: 'วิ่งจากวัดสระแก้ว ไปยังบ้านเดื่อ',
+                stopNames: [
+                    'วัดสระแก้ว', 'บ้านเดื่อ'
+                ]
+            },
+            {
+                name: 'สาย 4 (ขาว ฟ้า)',
+                color: '#87CEEB', // ฟ้า
+                description: 'วิ่งจากสนามม้า ผ่านสนามกีฬาค่ายฯ ไปยัง รร.บุญเหลือวิทยานุสรณ์',
+                stopNames: [
+                    'สนามม้า', 'สนามกีฬาค่ายฯ', 'คลังใหม่', 'อนุสาวรีย์ย่าโม', 'รร.เมืองฯ',
+                    'รร.สุรนารีฯ', 'รพ.มหาราช', 'สนามกีฬากลาง', 'ชพน.', 'จอหอ',
+                    'รร.บุญเหลือวิทยานุสรณ์'
+                ]
+            },
+            {
+                name: 'สาย 5 (ขาว เหลือง)',
+                color: '#FFFF00', // เหลือง
+                description: 'วิ่งจากวัดพายัพ ผ่านอนุสาวรีย์ย่าโม ไปยังเขตอุตสาหกรรมสุรนารี',
+                stopNames: [
+                    'วัดพายัพ', 'อนุสาวรีย์ย่าโม', 'คลังใหม่', 'ศาลากลาง', 'กองเมือง',
+                    'ประตูผี', 'หัวทะเล', 'ดูโฮม', 'เขตอุตสาหกรรมสุรนารี'
+                ]
+            },
+            {
+                name: 'สาย 6 (ขาว แดง)',
+                color: '#FF0000', // แดง
+                description: 'วิ่งจากจอหอ ผ่านบ้านเกาะ ไปยังสามแยกปักฯ',
+                stopNames: [
+                    'จอหอ', 'บ้านเกาะ', 'เทคโนฯ ราชมงคล', 'ราชภัฏ', 'ประตูน้ำ',
+                    'คลังใหม่', 'อนุสาวรีย์ย่าโม', 'ไอทีพลาซ่า', 'สามแยกอุดร', 'เดอะมอลล์',
+                    'โลตัส', 'รร.สีมาธานี', 'สามแยกปักฯ'
+                ]
+            },
+            {
+                name: 'สาย 6 (ขาว แดง) (เสริม)',
+                color: '#FF0000', // แดง
+                description: 'วิ่งจากบ้านเก่า ผ่านเทคโนฯ ราชมงคล ไปยังการเคหะ',
+                stopNames: [
+                    'บ้านเก่า', 'เทคโนฯ ราชมงคล', 'ราชภัฏ', 'ประตูน้ำ', 'คลังใหม่',
+                    'อนุสาวรีย์ย่าโม', 'ไอทีพลาซ่า', 'สามแยกอุดร', 'เดอะมอลล์', 'โลตัส',
+                    'รร.สีมาธานี', 'สามแยกปักฯ', 'เซฟวัน', 'การเคหะ'
+                ]
+            },
+            {
+                name: 'สาย 7 (ขาว น้ำเงิน)',
+                color: '#0000FF', // น้ำเงิน
+                description: 'วิ่งจากหัวทะเล ผ่านประตูผี ไปยังประโดก',
+                stopNames: [
+                    'หัวทะเล', 'ประตูผี', 'สถานีจิระ', 'ศาลากลาง', 'คลังใหม่',
+                    'อนุสาวรีย์ย่าโม', 'สามแยกอุดร', 'บิ๊กซี', 'บขส.ใหม่', 'แมคโคร',
+                    'ประโดก'
+                ]
+            },
+            {
+                name: 'สาย 8 (ขาว น้ำเงิน)',
+                color: '#0000FF', // น้ำเงิน
+                description: 'วิ่งจากวัดป่าสาละวัน ผ่านหัวรถไฟ ไปยังทุ่งสว่าง',
+                stopNames: [
+                    'วัดป่าสาละวัน', 'หัวรถไฟ', 'ตลาดย่าโม', 'เดอะมอลล์', 'สามแยกอุดร',
+                    'ไอทีพลาซ่า', 'วัดพายัพ', 'อนุสาวรีย์ย่าโม', 'ศาลากลาง', 'กองเมือง',
+                    'เรือนจำ', 'วัดบูรพ์', 'ประตูพลล้าน', 'ทุ่งสว่าง'
+                ]
+            },
+            {
+                name: 'สาย 9 (ขาว ฟ้า)',
+                color: '#87CEEB', // ฟ้า
+                description: 'วิ่งจากกองบิน 1 ผ่านหนองไผ่ล้อม ไปยังวัดศาลาลอย',
+                stopNames: [
+                    'กองบิน 1', 'หนองไผ่ล้อม', 'แยกหัวรถไฟ', 'สถานีดับเพลิง', 'คลังพลาซ่าใหม่',
+                    'อนุสาวรีย์ย่าโม', 'ตลาดแม่กิมเฮง', 'ทุ่งสว่าง', 'วัดศาลาลอย'
+                ]
+            },
+            {
+                name: 'สาย 10 (ขาว แดงเหลือง)',
+                color: '#FFD700', // แดงเหลือง (ทอง)
+                description: 'วิ่งจากค่ายสุรนารี ไปยัง บขส.ใหม่',
+                stopNames: [
+                    'ค่ายสุรนารี', 'บขส.ใหม่'
+                ]
+            },
+            {
+                name: 'สาย 11 (น้ำเงิน ขาว)',
+                color: '#0000FF', // น้ำเงิน
+                description: 'วิ่งจากวัดพายัพ ผ่านอนุสาวรีย์ย่าโม ไปยัง บชร.2',
+                stopNames: [
+                    'วัดพายัพ', 'อนุสาวรีย์ย่าโม', 'คลังใหม่', 'ตลาดแม่กิมเฮง', 'บขส.เก่า',
+                    'เทคนิค', 'การไฟฟ้า', 'รพ.ค่ายฯ', 'บุ่งตาหลัว', 'ค่ายสุรนารี', 'บชร.2'
+                ]
+            },
+            {
+                name: 'สาย 11 (เขียว แดง)',
+                color: '#008000', // เขียว
+                description: 'วิ่งจากวัดพายัพ ผ่านอนุสาวรีย์ย่าโม ไปยังค่ายสุรธรรมพิทักษ์',
+                stopNames: [
+                    'วัดพายัพ', 'อนุสาวรีย์ย่าโม', 'คลังใหม่', 'ตลาดแม่กิมเฮง', 'บขส.เก่า',
+                    'เทคนิค', 'การไฟฟ้า', 'รพ.ค่ายฯ', 'บุ่งตาหลัว', 'ค่ายสุรนารี',
+                    'หนองไผ่', 'ค่ายสุรธรรมพิทักษ์'
+                ]
+            },
+            {
+                name: 'สาย 12 (เลือดหมู เหลือง)',
+                color: '#8B0000', // เลือดหมู
+                description: 'วิ่งจากพะไล ผ่านดอนขวาง ไปยังวัดเลียบ',
+                stopNames: [
+                    'พะไล', 'ดอนขวาง', 'หัวทะเล', 'ประตูพลล้าน', 'รร.รวมมิตร',
+                    'คลังเก่า', 'คลังใหม่', 'อนุสาวรีย์ย่าโม', 'ตลาดแม่กิมเฮง', 'บขส.เก่า',
+                    'เทคนิค', 'การไฟฟ้า', 'หัวรถไฟ', 'ตลาดย่าโม', 'โลตัส',
+                    'รร.สีมาธานี', 'รร.โคราชพิทยาคม', 'วัดเลียบ'
+                ]
+            },
+            {
+                name: 'สาย 13 (น้ำเงิน ขาว)',
+                color: '#0000FF', // น้ำเงิน
+                description: 'สายตรงจากหนองไผ่ล้อม (กองบิน 1) ผ่านเทคนิค ไปยังทุ่งสว่าง',
+                stopNames: [
+                    'กองบิน 1', 'หนองไผ่ล้อม', 'เทคนิค', 'บขส.เก่า', 'ตลาดแม่กิมเฮง', 'ทุ่งสว่าง'
+                ]
+            },
+            {
+                name: 'สาย 14 (น้ำเงิน ขาว)',
+                color: '#0000FF', // น้ำเงิน
+                description: 'วิ่งจากทุ่งสว่าง ผ่านวัดศาลาลอย ไปยังประกันสังคม',
+                stopNames: [
+                    'ทุ่งสว่าง', 'วัดศาลาลอย', 'คลังใหม่', 'อนุสาวรีย์ย่าโม', 'ตลาดแม่กิมเฮง',
+                    'บขส.เก่า', 'เทคนิค', 'การไฟฟ้า', 'หนองไผ่ล้อม', 'ประกันสังคม'
+                ]
+            },
+            {
+                name: 'สาย 15 (ขาว ม่วง)',
+                color: '#800080', // ม่วง
+                description: 'วิ่งจาก บขส.ใหม่ ผ่านบิ๊กซี ไปยังตลาดแม่กิมเฮง',
+                stopNames: [
+                    'บขส.ใหม่', 'บิ๊กซี', 'สามแยกอุดร', 'ไอทีพลาซ่า', 'คลังใหม่',
+                    'อนุสาวรีย์ย่าโม', 'ตลาดแม่กิมเฮง'
+                ]
+            },
+            {
+                name: 'สาย 17 (ขาว ม่วง)',
+                color: '#800080', // ม่วง
+                description: 'วิ่งจาก มทส. ผ่านสามแยกปักฯ ไปยัง บขส.ใหม่',
+                stopNames: [
+                    'มหาวิทยาลัยเทคโนโลยีสุรนารี', 'สามแยกปักฯ', 'รร.สีมาธานี', 'โลตัส',
+                    'เดอะมอลล์', 'สามแยกอุดร', 'บิ๊กซี', 'บขส.ใหม่'
+                ]
+            },
+            {
+                name: 'สาย 18 (ขาว ม่วง)',
+                color: '#800080', // ม่วง
+                description: 'วิ่งจากหัวรถไฟ ผ่านการไฟฟ้า ไปยังสนามบิน (หนองเต็ง)',
+                stopNames: [
+                    'หัวรถไฟ', 'การไฟฟ้า', 'เทคนิค', 'บขส.เก่า', 'ตลาดแม่กิมเฮง',
+                    'อนุสาวรีย์ย่าโม', 'คลังใหม่', 'คลังเก่า', 'ประตูพลล้าน', 'หัวทะเล',
+                    'ท่าช้าง', 'สนามบิน (หนองเต็ง)'
+                ]
+            },
+            {
+                name: 'สาย 20 (ขาว น้ำเงิน)',
+                color: '#0000FF', // น้ำเงิน
+                description: 'วิ่งจากตลาดสุรนคร ผ่านประปา ไปยังหนองพลวงมะนาว',
+                stopNames: [
+                    'ตลาดสุรนคร', 'ประปา', 'วัดพายัพ', 'อนุสาวรีย์ย่าโม', 'คลังใหม่',
+                    'สนามกีฬาค่ายสุรนารี', 'สถานีจิระ', 'หนองโสน', 'หนองปรือ', 'หนองไผ่',
+                    'หนองพลวงมะนาว'
+                ]
+            }
+        ];
+
+        // เพิ่มข้อมูล routes และสร้าง route_segments
+        for (const route of initialRoutes) {
+            const routeId = await generateNextNumericId(routesCollection); // สร้าง ID เป็นตัวเลข
+
+            // แปลง stopNames เป็น stops array ที่มี stopId เป็นตัวเลข
+            const stopsDataForRoute = route.stopNames.map((stopName, orderIndex) => {
+                const stopId = stopNameToIdMap[stopName];
+                if (!stopId) {
+                    console.warn(`[Routes] คำเตือน: ไม่พบ ID สำหรับจุดจอด "${stopName}" ในเส้นทาง "${route.name}"`);
+                    return null;
+                }
+                return { stopId: stopId, order: orderIndex + 1 }; // order เริ่มจาก 1
+            }).filter(s => s !== null); // กรอง null ออกในกรณีที่ไม่พบ stopId
+
+            await setDoc(doc(routesCollection, routeId), {
+                name: route.name,
+                color: route.color,
+                description: route.description,
+                stops: stopsDataForRoute
+            });
+            console.log(`[Routes] เพิ่มเส้นทาง: ${route.name} (ID: ${routeId})`);
+
+            // --- สร้าง Route Segments สำหรับเส้นทางนี้ ---
+            // จะลบ segments เก่าสำหรับ routeId นี้ออกก่อนถ้ามี (ในกรณี re-seed และไม่ได้เคลียร์ทั้งหมด)
+            // แต่ถ้า clearCollection ถูกเรียกไปแล้ว ก็ไม่มี segments เก่าอยู่แล้ว
+            const existingSegmentsQuery = await getDocs(collection(db, 'route_segments'));
+            const segmentsToDelete = existingSegmentsQuery.docs.filter(sDoc => sDoc.data().routeId === routeId);
+            const deleteBatch = writeBatch(db);
+            segmentsToDelete.forEach(sDoc => deleteBatch.delete(sDoc.ref));
+            await deleteBatch.commit();
+
+            const segmentBatch = writeBatch(db);
+
+            for (let j = 0; j < stopsDataForRoute.length; j++) {
+                for (let k = j + 1; k < stopsDataForRoute.length; k++) {
+                    const startStop = stopsDataForRoute[j];
+                    const endStop = stopsDataForRoute[k];
+
+                    const segmentId = await generateNextNumericId(routeSegmentsCollection); // สร้าง ID สำหรับ segment
+                    segmentBatch.set(doc(routeSegmentsCollection, segmentId), {
+                        startStopId: startStop.stopId,
+                        endStopId: endStop.stopId,
+                        routeId: routeId,
+                        routeOrderFrom: startStop.order,
+                        routeOrderTo: endStop.order
+                    });
+                    console.log(`[Route Segments] เพิ่ม Segment: ${startStop.stopId} -> ${endStop.stopId} (Route: ${routeId}, ID: ${segmentId})`);
+                }
+            }
+            await segmentBatch.commit(); // Commit batch สำหรับ segments
+        }
+        console.log("---------------------------------------");
+
+        showSeedStatus("** เพิ่มข้อมูลเริ่มต้นลงใน Firestore เสร็จสมบูรณ์! **", "success");
+        console.log("** เพิ่มข้อมูลเริ่มต้นลงใน Firestore เสร็จสมบูรณ์! **");
+
+    } catch (error) {
+        showSeedStatus(`เกิดข้อผิดพลาดในการเพิ่มข้อมูลเริ่มต้น: ${error.message}`, "error");
+        console.error("เกิดข้อผิดพลาดในการเพิ่มข้อมูลเริ่มต้น:", error);
+    }
+}
+seedInitialData()
+
+
+ 

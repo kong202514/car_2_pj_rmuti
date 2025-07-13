@@ -269,7 +269,7 @@ async function addStop() {
     const latitude = parseFloat(stopLatInput.value);
     const longitude = parseFloat(stopLonInput.value);
 
-    if (!name || isNaN(latitude) || isNaN(longitude)) {
+    if (!name  ) {
         showStatusMessage('กรุณากรอกข้อมูลจุดจอดให้ครบถ้วนและถูกต้อง', 'error', addStopStatus);
         return;
     }
@@ -279,8 +279,8 @@ async function addStop() {
         const stopsCollection = collection(db, 'stops');
         await setDoc(doc(stopsCollection, newStopId), {
             name: name,
-            latitude: 0,
-            longitude: 0
+            latitude: latitude,
+            longitude: longitude
         });
         showStatusMessage(`เพิ่มจุดจอด "${name}" (ID: ${newStopId}) สำเร็จ!`, 'success', addStopStatus);
         stopNameInput.value = '';
