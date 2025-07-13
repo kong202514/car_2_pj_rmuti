@@ -279,8 +279,8 @@ async function addStop() {
         const stopsCollection = collection(db, 'stops');
         await setDoc(doc(stopsCollection, newStopId), {
             name: name,
-            latitude: latitude,
-            longitude: longitude
+            latitude: 0,
+            longitude: 0
         });
         showStatusMessage(`เพิ่มจุดจอด "${name}" (ID: ${newStopId}) สำเร็จ!`, 'success', addStopStatus);
         stopNameInput.value = '';
