@@ -55,7 +55,7 @@ async function loadAllRouteSegmentsData() {
 function renderSVGPath(nodes, container, label = '') {
     container.innerHTML = ''
 
-    const width = 1000
+    const width = 200
     const height = 120 * nodes.length + 100
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
     svg.setAttribute("width", width)
