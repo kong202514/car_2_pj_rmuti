@@ -85,7 +85,7 @@ function renderSVGPath(nodes, container, label = '') {
         text.setAttribute("dominant-baseline", "middle")
         text.setAttribute("dx", "12")
         text.setAttribute("fill", "black")
-        text.style.fontSize = "26px"
+        text.style.fontSize = "16px"
         text.textContent = node.label
         svg.appendChild(text)
 
