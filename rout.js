@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js"
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js"
 
@@ -55,6 +54,7 @@ async function loadAllRouteSegmentsData() {
 
 async function findRoute() {
     resultsContainer.innerHTML = ''
+    document.getElementById('svg-container').innerHTML = ''
     loadingMessage.style.display = 'block'
 
     const origin = originSelect.value
@@ -75,20 +75,33 @@ async function findRoute() {
         resultsContainer.innerHTML += '<h3>เส้นทางตรง:</h3>'
         directRoutes.forEach(route => {
             const sortedStops = [...route.stops].sort((a, b) => a.order - b.order)
-            const stopList = sortedStops.map((s, i) => {
+            const startIndex = sortedStops.findIndex(s => s.stopId === origin)
+            const endIndex = sortedStops.findIndex(s => s.stopId === destination)
+
+            if (startIndex === -1 || endIndex === -1) return
+
+            const sliced = sortedStops.slice(
+                Math.min(startIndex, endIndex),
+                Math.max(startIndex, endIndex) + 1
+            )
+
+            const visualNodes = sliced.map(s => {
                 const stopData = allStops.find(stop => stop.id === s.stopId)
-                return `<li>${i + 1}. ${stopData ? stopData.name : s.stopId}</li>`
-            }).join('')
+                const icon = s.stopId === origin ? '✅' : (s.stopId === destination ? '🏁' : '')
+                return { label: `${icon} ${stopData ? stopData.name : s.stopId}` }
+            })
+
             resultsContainer.innerHTML += `
                 <div>
                     <div><b>สาย: ${route.name}</b> - ${route.description || 'ไม่มีคำอธิบาย'}</div>
-                    <ol>${stopList}</ol>
                 </div>`
+            renderSVGPath(visualNodes)
         })
     } else {
         resultsContainer.innerHTML += '<p>ไม่พบเส้นทางตรง</p>'
     }
 
+    // หาเส้นทางต่อรถ
     const transfers = []
     for (const route1 of allRoutes) {
         if (!route1.stops.some(s => s.stopId === origin)) continue
@@ -101,12 +114,10 @@ async function findRoute() {
                 .find(id => route2.stops.some(s2 => s2.stopId === id) && id !== origin && id !== destination)
 
             if (transferStopId) {
-                const transferStop = allStops.find(s => s.id === transferStopId)
                 transfers.push({
-                    transferAt: transferStop?.name || transferStopId,
+                    transferStopId,
                     route1,
-                    route2,
-                    transferStopId
+                    route2
                 })
             }
         }
@@ -118,35 +129,125 @@ async function findRoute() {
             const stops1 = [...t.route1.stops].sort((a, b) => a.order - b.order)
             const stops2 = [...t.route2.stops].sort((a, b) => a.order - b.order)
 
-            const stopList1 = stops1.map((s, idx) => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                const mark = s.stopId === origin ? '✅ ' : (s.stopId === t.transferStopId ? '➡️ ' : '')
-                return `<li>${mark}  ${stopData ? stopData.name : s.stopId}</li>`
-            }).join('')
+            const idxStart = stops1.findIndex(s => s.stopId === origin)
+            const idxTransfer1 = stops1.findIndex(s => s.stopId === t.transferStopId)
+            const path1 = stops1.slice(Math.min(idxStart, idxTransfer1), Math.max(idxStart, idxTransfer1) + 1)
 
-            const stopList2 = stops2.map((s, idx) => {
+            const idxTransfer2 = stops2.findIndex(s => s.stopId === t.transferStopId)
+            const idxEnd = stops2.findIndex(s => s.stopId === destination)
+            const path2 = stops2.slice(Math.min(idxTransfer2, idxEnd), Math.max(idxTransfer2, idxEnd) + 1)
+
+            const visualNodes = [...path1, ...path2.slice(1)].map(s => {
                 const stopData = allStops.find(stop => stop.id === s.stopId)
-                const mark = s.stopId === t.transferStopId ? '➡️ ' : (s.stopId === destination ? '🏁 ' : '')
-                return `<li>${mark} ${stopData ? stopData.name : s.stopId}</li>`
-            }).join('')
-            // <div>สามารถต่อรถได้ที่ => <strong>${t.transferAt}</strong></div>
+                const icon = s.stopId === origin ? '✅' :
+                    s.stopId === t.transferStopId ? '➡️' :
+                        s.stopId === destination ? '🏁' : ''
+                return { label: `${icon} ${stopData ? stopData.name : s.stopId}` }
+            })
 
             resultsContainer.innerHTML += `
-                <div>
-                    <div><b>แผนการเดินทางที่ ${i + 1}</b>: ขึ้นรถสาย ${t.route1.name}</div>
-                    มาลงที่ ${t.transferAt}
-                    <div>แล้วขึ้นสายที่  ${t.route2.name} ที่ ${t.transferAt}</div>
-                    <div>โดยสายแรกมีจุดจอดรถดังนี้:</div>
-                    <ol>${stopList1}</ol>
-                    <div>และ สายที่ สอง มีจุดจอดรถดังนี้:</div>
-                    <ol>${stopList2}</ol>
-                </div>`
+  <div style="border:1px solid #ccc; padding:10px; margin-bottom:15px; border-radius:5px;">
+    <div><b>แผนการเดินทางที่ ${i + 1}</b></div>
+    <div>ขึ้นรถที่จุดต้นทาง: <strong>${allStops.find(s => s.id === origin)?.name || origin}</strong> โดยสาย <strong>${t.route1.name}</strong></div>
+    <div>ผ่านสถานี:</div>
+    <ol>
+      ${path1.map(s => {
+                const stopName = allStops.find(stop => stop.id === s.stopId)?.name || s.stopId
+                const mark = s.stopId === origin ? '🚩' : (s.stopId === t.transferStopId ? '🔄 จุดต่อรถ' : '')
+                return `<li>${mark} ${stopName}</li>`
+            }).join('')}
+    </ol>
+    <div>ต่อรถที่สถานี: <strong>${t.transferAt}</strong></div>
+    <div>ขึ้นรถสาย <strong>${t.route2.name}</strong> จากสถานี <strong>${t.transferAt}</strong> ไปยังปลายทางที่ <strong>${allStops.find(s => s.id === destination)?.name || destination}</strong></div>
+    <div>ผ่านสถานี:</div>
+    <ol>
+      ${path2.map(s => {
+                const stopName = allStops.find(stop => stop.id === s.stopId)?.name || s.stopId
+                const mark = s.stopId === t.transferStopId ? '🔄 จุดต่อรถ' : (s.stopId === destination ? '🏁 ปลายทาง' : '')
+                return `<li>${mark} ${stopName}</li>`
+            }).join('')}
+    </ol>
+  </div>
+`
+
+            renderSVGPath(visualNodes)
         })
     } else {
         resultsContainer.innerHTML += '<p>ไม่พบเส้นทางต่อรถ</p>'
     }
 
     loadingMessage.style.display = 'none'
+}
+
+function renderSVGPath(nodes) {
+    const svgContainer = document.getElementById('svg-container')
+    svgContainer.innerHTML = '' // clear old
+
+    const width = 120 * nodes.length + 100
+    const height = 200
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+    svg.setAttribute("width", width)
+    svg.setAttribute("height", height)
+
+    const nodeRadius = 10
+    const spaceX = 120
+    const startX = 50
+    const centerY = height / 2
+
+    nodes.forEach((node, index) => {
+        const cx = startX + index * spaceX
+        const cy = centerY
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+        circle.setAttribute("cx", cx)
+        circle.setAttribute("cy", cy)
+        circle.setAttribute("r", nodeRadius)
+        circle.setAttribute("fill", "#807b25ff")
+        circle.setAttribute("stroke", "#000")
+        svg.appendChild(circle)
+
+
+        // อยากให้ตัวหนังสือเอียงขึ้นข้างบน 45 องศา
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text")
+        label.setAttribute("x", cx) // ขยับไปทางขวานิดหน่อย 
+        label.setAttribute("y", cy - 5) // ขยับขึ้นนิดหน่อย
+        label.setAttribute("text-anchor", "middle")
+        label.setAttribute("fill", "black")
+        label.setAttribute("transform", `rotate(-300 ${cx} ${cy - 5})`)
+        label.style.fontSize = "22px"
+        label.textContent = node.label
+        svg.appendChild(label)
+
+
+        if (index < nodes.length - 1) {
+            const arrow = document.createElementNS("http://www.w3.org/2000/svg", "line")
+            arrow.setAttribute("x1", cx + nodeRadius)
+            arrow.setAttribute("y1", cy)
+            arrow.setAttribute("x2", cx + spaceX - nodeRadius)
+            arrow.setAttribute("y2", cy)
+            arrow.setAttribute("stroke", "#000000ff")
+            arrow.setAttribute("stroke-width", 2)
+            arrow.setAttribute("marker-end", "url(#arrow)")
+            svg.appendChild(arrow)
+        }
+    })
+
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs")
+    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker")
+    marker.setAttribute("id", "arrow")
+    marker.setAttribute("markerWidth", "10")
+    marker.setAttribute("markerHeight", "10")
+    marker.setAttribute("refX", "0")
+    marker.setAttribute("refY", "3")
+    marker.setAttribute("orient", "auto")
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    path.setAttribute("d", "M0,0 L0,6 L9,3 z")
+    path.setAttribute("fill", "#c2ddebff")
+    marker.appendChild(path)
+    defs.appendChild(marker)
+    svg.appendChild(defs)
+
+    svgContainer.appendChild(svg)
 }
 
 searchButton.addEventListener('click', findRoute)
