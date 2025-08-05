@@ -77,7 +77,7 @@ async function loadAllRouteSegmentsData() {
     const snapshot = await getDocs(collection(db, 'route_segments'));
     allRouteSegments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
- /*
+ 
 
 async function findRoute() {
     resultsContainer.innerHTML = ''; // Clear previous results
@@ -405,327 +405,12 @@ async function findRoute() {
 
     loadingMessage.style.display = 'none'; // Hide loading message
 }
+ 
+
+ 
 
 
-
-*/
-
-
-async function findRoute() {
-    resultsContainer.innerHTML = ''; // Clear previous results
-    loadingMessage.style.display = 'block'; // Show loading message
-
-    const originId = originSelect.value;
-    const destinationId = destinationSelect.value;
-
-    if (!originId || !destinationId || originId === destinationId) {
-        loadingMessage.style.display = 'none';
-        resultsContainer.innerHTML = '<p style="color:red;">กรุณาเลือกจุดต้นทางและปลายทางที่ไม่ซ้ำกัน</p>';
-        return;
-    }
-
-    const originStop = allStops.find(s => s.id === originId);
-    const destinationStop = allStops.find(s => s.id === destinationId);
-
-    // Initialize Longdo Map and put all logic inside the callback
-    const map = new longdo.Map({
-        placeholder: document.getElementById('map'),
-        callback: () => {
-            map.Overlays.clear();
-
-            // Add markers for origin and destination
-            if (originStop) {
-                const originMarker = new longdo.Marker({ lon: originStop.lon, lat: originStop.lat }, {
-                    title: `จุดเริ่มต้น: ${originStop.name}`,
-                    detail: originStop.name,
-                    icon: longdo.Icon.pin({ label: 'A', icon: '/pin.png' }), // Add pin.png
-                    draggable: false
-                });
-                map.Overlays.add(originMarker);
-                map.zoom(16);
-                map.location(new longdo.LatLng(originStop.lat, originStop.lon));
-            }
-
-            if (destinationStop) {
-                const destinationMarker = new longdo.Marker({ lon: destinationStop.lon, lat: destinationStop.lat }, {
-                    title: `จุดปลายทาง: ${destinationStop.name}`,
-                    detail: destinationStop.name,
-                    icon: longdo.Icon.pin({ label: 'B', icon: '/pin-destination.png' }), // Add pin-destination.png
-                    draggable: false
-                });
-                map.Overlays.add(destinationMarker);
-            }
-
-            // Find direct routes
-            const directRoutes = allRoutes.filter(route => {
-                const stopIds = route.stops.map(s => s.stopId);
-                return stopIds.includes(originId) && stopIds.includes(destinationId);
-            });
-
-            resultsContainer.innerHTML += '<h2>ผลการค้นหาเส้นทาง</h2>';
-            if (directRoutes.length > 0) {
-                resultsContainer.innerHTML += '<h3>เส้นทางตรง:</h3>';
-                const limitedDirectRoutes = directRoutes.slice(0, 2);
-                for (const route of limitedDirectRoutes) {
-                    const sortedStops = [...route.stops].sort((a, b) => a.order - b.order);
-                    resultsContainer.innerHTML += `<p><b>สาย: ${route.name}</b> - ${route.description || 'ไม่มีคำอธิบาย'}</p>`;
-
-                    const polyline = new longdo.Polyline([], {
-                        lineStyle: 'solid',
-                        lineColor: 'rgba(0, 0, 255, 0.7)',
-                        lineWidth: 5
-                    });
-
-                    sortedStops.forEach(s => {
-                        const stopData = allStops.find(stop => stop.id === s.stopId);
-                        if (stopData) {
-                            polyline.add(new longdo.LatLng(stopData.lat, stopData.lon));
-                            if (s.stopId !== originId && s.stopId !== destinationId) {
-                                const stopMarker = new longdo.Marker({ lon: stopData.lon, lat: stopData.lat }, {
-                                    title: stopData.name,
-                                    detail: `สาย ${route.name}`,
-                                    icon: longdo.Icon.pin()
-                                });
-                                map.Overlays.add(stopMarker);
-                            }
-                        }
-                    });
-                    map.Overlays.add(polyline);
-                    map.bound(polyline.bound());
-                }
-            } else {
-                resultsContainer.innerHTML += '<p>ไม่พบเส้นทางตรง</p>';
-            }
-
-            // Find 1-transfer routes
-            const transfers1 = [];
-            for (const route1 of allRoutes) {
-                if (!route1.stops.some(s => s.stopId === originId)) continue;
-                for (const route2 of allRoutes) {
-                    if (route1.id === route2.id || !route2.stops.some(s => s.stopId === destinationId)) continue;
-                    const transferStopId = route1.stops
-                        .map(s => s.stopId)
-                        .find(id => route2.stops.some(s2 => s2.stopId === id) && id !== originId && id !== destinationId);
-
-                    if (transferStopId) {
-                        const transferStop = allStops.find(s => s.id === transferStopId);
-                        transfers1.push({
-                            transferAt: transferStop?.name || transferStopId,
-                            route1,
-                            route2,
-                            transferStopId
-                        });
-                    }
-                }
-            }
-
-            if (transfers1.length > 0) {
-                resultsContainer.innerHTML += '<h3>เส้นทางต่อรถ (1 จุด):</h3>';
-                const limitedTransfers = transfers1.slice(0, 2);
-                limitedTransfers.forEach((t, i) => {
-                    const stops1 = [...t.route1.stops].sort((a, b) => a.order - b.order);
-                    const stops2 = [...t.route2.stops].sort((a, b) => a.order - b.order);
-
-                    resultsContainer.innerHTML += `<p><b>แผนการเดินทางที่ ${i + 1}</b>: ขึ้นรถสาย ${t.route1.name} → ลงที่ ${t.transferAt} → ต่อรถสาย ${t.route2.name}</p>`;
-
-                    const polyline1 = new longdo.Polyline([], {
-                        lineStyle: 'solid',
-                        lineColor: 'rgba(255, 0, 0, 0.7)',
-                        lineWidth: 5
-                    });
-                    stops1.forEach(s => {
-                        const stopData = allStops.find(stop => stop.id === s.stopId);
-                        if (stopData) {
-                            polyline1.add(new longdo.LatLng(stopData.lat, stopData.lon));
-                            if (s.stopId !== originId && s.stopId !== destinationId && s.stopId !== t.transferStopId) {
-                                const stopMarker = new longdo.Marker({ lon: stopData.lon, lat: stopData.lat }, {
-                                    title: stopData.name,
-                                    detail: `สาย ${t.route1.name}`,
-                                    icon: longdo.Icon.pin()
-                                });
-                                map.Overlays.add(stopMarker);
-                            }
-                        }
-                    });
-                    map.Overlays.add(polyline1);
-
-                    const polyline2 = new longdo.Polyline([], {
-                        lineStyle: 'solid',
-                        lineColor: 'rgba(0, 255, 0, 0.7)',
-                        lineWidth: 5
-                    });
-                    stops2.forEach(s => {
-                        const stopData = allStops.find(stop => stop.id === s.stopId);
-                        if (stopData) {
-                            polyline2.add(new longdo.LatLng(stopData.lat, stopData.lon));
-                            if (s.stopId !== originId && s.stopId !== destinationId && s.stopId !== t.transferStopId) {
-                                const stopMarker = new longdo.Marker({ lon: stopData.lon, lat: stopData.lat }, {
-                                    title: stopData.name,
-                                    detail: `สาย ${t.route2.name}`,
-                                    icon: longdo.Icon.pin()
-                                });
-                                map.Overlays.add(stopMarker);
-                            }
-                        }
-                    });
-                    map.Overlays.add(polyline2);
-
-                    const transferStop = allStops.find(s => s.id === t.transferStopId);
-                    if (transferStop) {
-                        const transferMarker = new longdo.Marker({ lon: transferStop.lon, lat: transferStop.lat }, {
-                            title: `จุดเปลี่ยนสาย: ${transferStop.name}`,
-                            detail: `เปลี่ยนจากสาย ${t.route1.name} ไปสาย ${t.route2.name}`,
-                            icon: longdo.Icon.pin({ label: '1' })
-                        });
-                        map.Overlays.add(transferMarker);
-                    }
-                });
-            } else {
-                resultsContainer.innerHTML += '<p>ไม่พบเส้นทางต่อรถ 1 จุด</p>';
-            }
-
-            // Find 2-transfer routes
-            const transfers2 = [];
-            for (const routeA of allRoutes) {
-                if (!routeA.stops.some(s => s.stopId === originId)) continue;
-                for (const routeB of allRoutes) {
-                    if (routeB.id === routeA.id) continue;
-                    for (const routeC of allRoutes) {
-                        if (routeC.id === routeA.id || routeC.id === routeB.id) continue;
-                        if (!routeC.stops.some(s => s.stopId === destinationId)) continue;
-                        const transferStop1 = routeA.stops
-                            .map(s => s.stopId)
-                            .find(id => routeB.stops.some(s2 => s2.stopId === id) && id !== originId && id !== destinationId);
-                        if (!transferStop1) continue;
-                        const transferStop2 = routeB.stops
-                            .map(s => s.stopId)
-                            .find(id => routeC.stops.some(s2 => s2.stopId === id) && id !== originId && id !== destinationId && id !== transferStop1);
-                        if (!transferStop2) continue;
-                        const originOrder = routeA.stops.find(s => s.stopId === originId)?.order ?? -1;
-                        const transfer1OrderInA = routeA.stops.find(s => s.stopId === transferStop1)?.order ?? -1;
-                        if (transfer1OrderInA <= originOrder) continue;
-                        const transfer1OrderInB = routeB.stops.find(s => s.stopId === transferStop1)?.order ?? -1;
-                        const transfer2OrderInB = routeB.stops.find(s => s.stopId === transferStop2)?.order ?? -1;
-                        if (transfer2OrderInB <= transfer1OrderInB) continue;
-                        const transfer2OrderInC = routeC.stops.find(s => s.stopId === transferStop2)?.order ?? -1;
-                        const destinationOrderInC = routeC.stops.find(s => s.stopId === destinationId)?.order ?? -1;
-                        if (destinationOrderInC <= transfer2OrderInC) continue;
-                        transfers2.push({
-                            routeA,
-                            routeB,
-                            routeC,
-                            transferStop1,
-                            transferStop2,
-                            transferAt1: allStops.find(s => s.id === transferStop1)?.name || transferStop1,
-                            transferAt2: allStops.find(s => s.id === transferStop2)?.name || transferStop2
-                        });
-                    }
-                }
-            }
-
-            if (transfers2.length > 0) {
-                resultsContainer.innerHTML += '<h3>เส้นทางต่อรถ (2 จุด):</h3>';
-                const limitedTransfers2 = transfers2.slice(0, 1);
-                limitedTransfers2.forEach((t, i) => {
-                    const stopsA = [...t.routeA.stops].sort((a, b) => a.order - b.order);
-                    const stopsB = [...t.routeB.stops].sort((a, b) => a.order - b.order);
-                    const stopsC = [...t.routeC.stops].sort((a, b) => a.order - b.order);
-
-                    resultsContainer.innerHTML += `<p><b>แผนการเดินทางที่ ${i + 1}</b> ต่อรถ 2 จุด: ขึ้นรถสาย ${t.routeA.name} → ลงที่ ${t.transferAt1} → ต่อรถสาย ${t.routeB.name} → ลงที่ ${t.transferAt2} → ต่อรถสาย ${t.routeC.name}</p>`;
-
-                    const polylineA = new longdo.Polyline([], {
-                        lineStyle: 'solid',
-                        lineColor: 'rgba(255, 0, 0, 0.7)',
-                        lineWidth: 5
-                    });
-                    stopsA.forEach(s => {
-                        const stopData = allStops.find(stop => stop.id === s.stopId);
-                        if (stopData) {
-                            polylineA.add(new longdo.LatLng(stopData.lat, stopData.lon));
-                            if (s.stopId !== originId && s.stopId !== destinationId && s.stopId !== t.transferStop1) {
-                                const stopMarker = new longdo.Marker({ lon: stopData.lon, lat: stopData.lat }, {
-                                    title: stopData.name,
-                                    detail: `สาย ${t.routeA.name}`,
-                                    icon: longdo.Icon.pin()
-                                });
-                                map.Overlays.add(stopMarker);
-                            }
-                        }
-                    });
-                    map.Overlays.add(polylineA);
-
-                    const polylineB = new longdo.Polyline([], {
-                        lineStyle: 'solid',
-                        lineColor: 'rgba(0, 255, 0, 0.7)',
-                        lineWidth: 5
-                    });
-                    stopsB.forEach(s => {
-                        const stopData = allStops.find(stop => stop.id === s.stopId);
-                        if (stopData) {
-                            polylineB.add(new longdo.LatLng(stopData.lat, stopData.lon));
-                            if (s.stopId !== originId && s.stopId !== destinationId && s.stopId !== t.transferStop1 && s.stopId !== t.transferStop2) {
-                                const stopMarker = new longdo.Marker({ lon: stopData.lon, lat: stopData.lat }, {
-                                    title: stopData.name,
-                                    detail: `สาย ${t.routeB.name}`,
-                                    icon: longdo.Icon.pin()
-                                });
-                                map.Overlays.add(stopMarker);
-                            }
-                        }
-                    });
-                    map.Overlays.add(polylineB);
-
-                    const polylineC = new longdo.Polyline([], {
-                        lineStyle: 'solid',
-                        lineColor: 'rgba(0, 0, 255, 0.7)',
-                        lineWidth: 5
-                    });
-                    stopsC.forEach(s => {
-                        const stopData = allStops.find(stop => stop.id === s.stopId);
-                        if (stopData) {
-                            polylineC.add(new longdo.LatLng(stopData.lat, stopData.lon));
-                            if (s.stopId !== originId && s.stopId !== destinationId && s.stopId !== t.transferStop2) {
-                                const stopMarker = new longdo.Marker({ lon: stopData.lon, lat: stopData.lat }, {
-                                    title: stopData.name,
-                                    detail: `สาย ${t.routeC.name}`,
-                                    icon: longdo.Icon.pin()
-                                });
-                                map.Overlays.add(stopMarker);
-                            }
-                        }
-                    });
-                    map.Overlays.add(polylineC);
-
-                    const transferStop1 = allStops.find(s => s.id === t.transferStop1);
-                    if (transferStop1) {
-                        const transferMarker1 = new longdo.Marker({ lon: transferStop1.lon, lat: transferStop1.lat }, {
-                            title: `จุดเปลี่ยนสาย: ${transferStop1.name}`,
-                            detail: `เปลี่ยนจากสาย ${t.routeA.name} ไปสาย ${t.routeB.name}`,
-                            icon: longdo.Icon.pin({ label: '1' })
-                        });
-                        map.Overlays.add(transferMarker1);
-                    }
-
-                    const transferStop2 = allStops.find(s => s.id === t.transferStop2);
-                    if (transferStop2) {
-                        const transferMarker2 = new longdo.Marker({ lon: transferStop2.lon, lat: transferStop2.lat }, {
-                            title: `จุดเปลี่ยนสาย: ${transferStop2.name}`,
-                            detail: `เปลี่ยนจากสาย ${t.routeB.name} ไปสาย ${t.routeC.name}`,
-                            icon: longdo.Icon.pin({ label: '2' })
-                        });
-                        map.Overlays.add(transferMarker2);
-                    }
-                });
-            } else {
-                resultsContainer.innerHTML += '<p>ไม่พบเส้นทางต่อรถ 2 จุด</p>';
-            }
-
-            loadingMessage.style.display = 'none'; // Hide loading message
-        }
-    });
-}
-
-
+ 
 
 // Attach event listener to the search button
 searchButton.addEventListener('click', findRoute);
@@ -746,19 +431,19 @@ async function initApp() {
 
 
     // Add markers for all stops in allStops2
-    // for (let i = 0; i < allStops2.length; i++) {
-    //     const stop = allStops2[i];
-    //     if (stop.latitude && stop.longitude) {
-    //         const marker = new longdo.Marker({
-    //             lon: stop.longitude,
-    //             lat: stop.latitude,
-    //         }, {
-    //             title: stop.name || `จุดที่ ${i + 1}`,
-    //             detail: stop.name || ''
-    //         });
-    //         map.Overlays.add(marker);
-    //     }
-    // }
+    for (let i = 0; i < allStops2.length; i++) {
+        const stop = allStops2[i];
+        if (stop.latitude && stop.longitude) {
+            const marker = new longdo.Marker({
+                lon: stop.longitude,
+                lat: stop.latitude,
+            }, {
+                title: stop.name || `จุดที่ ${i + 1}`,
+                detail: stop.name || ''
+            });
+            map.Overlays.add(marker);
+        }
+    }
     map.zoom(15, true);
     loadingMessage.style.display = 'none'; // Hide loading message
     searchButton.disabled = false; // Enable button once everything is loaded

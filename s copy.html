@@ -1,0 +1,345 @@
+ !DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ค้นหาเส้นทางรถสองแถวในเมืองนครราชสีมา</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        #search-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        select,
+        button {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #loading-message {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+            display: none;
+            margin-bottom: 15px;
+        }
+
+        #map {
+            width: 100%;
+            height: 600px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        #results-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #results-container h2,
+        #results-container h3 {
+            color: #0056b3;
+        }
+
+        #showAllRoutesButton {
+            background-color: #28a745;
+        }
+
+        #showAllRoutesButton:hover {
+            background-color: #218838;
+        }
+    </style>
+    <script type="text/javascript" src="https://api.longdo.com/map/?key=042135539c8848ee0c5f7629520812a8"></script>
+</head>
+
+<body>
+    <h1>ค้นหาเส้นทางรถสองแถวในเมืองนครราชสีมา</h1>
+
+    <div id="search-container">
+        <div class="form-group">
+            <label for="originSelect">จุดต้นทาง:</label>
+            <select id="originSelect">
+                <option value="">เลือกจุดต้นทาง</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="destinationSelect">จุดปลายทาง:</label>
+            <select id="destinationSelect">
+                <option value="">เลือกจุดปลายทาง</option>
+            </select>
+        </div>
+        <button id="searchButton">ค้นหาเส้นทาง</button>
+        <button id="showAllRoutesButton">แสดงทุกเส้นทาง</button>
+    </div>
+
+    <div id="loading-message">
+        <p>กำลังค้นหาข้อมูล... โปรดรอสักครู่</p>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="results-container"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXn8SyiVLWui1I7RbwiHAkARvjN3-TGU0",
+            authDomain: "qazx-3fc6e.firebaseapp.com",
+            projectId: "qazx-3fc6e",
+            storageBucket: "qazx-3fc6e.appspot.com",
+            messagingSenderId: "101969041040",
+            appId: "1:101969041040:web:a578a1b724e1ebf7f9aa15",
+            measurementId: "G-8RFTQKJH2Y"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const originSelect = document.getElementById('originSelect');
+        const destinationSelect = document.getElementById('destinationSelect');
+        const searchButton = document.getElementById('searchButton');
+        const showAllRoutesButton = document.getElementById('showAllRoutesButton');
+        const resultsContainer = document.getElementById('results-container');
+        const loadingMessage = document.getElementById('loading-message');
+        const mapElement = document.getElementById('map');
+
+        let allStops = [];
+        let allRoutes = [];
+        let allRouteSegments = [];
+        let map;
+
+        function populateDropdown(selectElement, stopsData) {
+            while (selectElement.children.length > 1) {
+                selectElement.removeChild(selectElement.lastChild);
+            }
+            stopsData.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+            stopsData.forEach(stop => {
+                const option = document.createElement('option');
+                option.value = stop.id;
+                option.textContent = stop.name;
+                selectElement.appendChild(option);
+            });
+        }
+
+        async function loadAllStopsData() {
+            const snapshot = await getDocs(collection(db, 'stops'));
+            allStops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+        async function loadAllRoutesData() {
+            const snapshot = await getDocs(collection(db, 'routes'));
+            allRoutes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+        async function loadAllRouteSegmentsData() {
+            const snapshot = await getDocs(collection(db, 'route_segments'));
+            allRouteSegments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+        function initLongdoMap() {
+            if (!map) {
+                map = new longdo.Map({
+                    placeholder: mapElement,
+                    zoom: 15
+                });
+            }
+            map.Overlays.clear();
+        }
+
+        async function findRoute() {
+            resultsContainer.innerHTML = '';
+            loadingMessage.style.display = 'block';
+
+            const originId = originSelect.value;
+            const destinationId = destinationSelect.value;
+
+            if (!originId || !destinationId || originId === destinationId) {
+                loadingMessage.style.display = 'none';
+                resultsContainer.innerHTML = '<p style="color:red;">กรุณาเลือกจุดต้นทางและปลายทางที่ไม่ซ้ำกัน</p>';
+                return;
+            }
+
+            initLongdoMap();
+
+            const originStop = allStops.find(s => s.id === originId);
+            const destinationStop = allStops.find(s => s.id === destinationId);
+
+            if (originStop && originStop.latitude && originStop.longitude) {
+                const originMarker = new longdo.Marker({ lon: originStop.longitude, lat: originStop.latitude }, {
+                    title: `จุดเริ่มต้น: ${originStop.name}`,
+                    icon: longdo.Icon.pin({ label: 'A' })
+                });
+                map.Overlays.add(originMarker);
+                map.location(new longdo.LatLng(originStop.latitude, originStop.longitude));
+            }
+
+            if (destinationStop && destinationStop.latitude && destinationStop.longitude) {
+                const destinationMarker = new longdo.Marker({ lon: destinationStop.longitude, lat: destinationStop.latitude }, {
+                    title: `จุดปลายทาง: ${destinationStop.name}`,
+                    icon: longdo.Icon.pin({ label: 'B' })
+                });
+                map.Overlays.add(destinationMarker);
+            }
+
+            const directRoutes = allRoutes.filter(route => {
+                const stopIds = route.stops.map(s => s.stopId);
+                return stopIds.includes(originId) && stopIds.includes(destinationId);
+            });
+
+            if (directRoutes.length > 0) {
+                resultsContainer.innerHTML += '<h3>เส้นทางตรง:</h3>';
+                const limitedDirectRoutes = directRoutes.slice(0, 2);
+                for (const route of limitedDirectRoutes) {
+                    const sortedStops = [...route.stops].sort((a, b) => a.order - b.order);
+                    const stopListHtml = sortedStops.map((s, i) => {
+                        const stopData = allStops.find(stop => stop.id === s.stopId);
+                        return `<li>${i + 1}. ${stopData ? stopData.name : s.stopId}</li>`;
+                    }).join('');
+
+                    resultsContainer.innerHTML += `
+                        <div>
+                            <div><b>สาย: ${route.name}</b> - ${route.description || 'ไม่มีคำอธิบาย'}</div>
+                            <ol>${stopListHtml}</ol>
+                        </div>`;
+                }
+            } else {
+                resultsContainer.innerHTML += '<p>ไม่พบเส้นทางตรง</p>';
+            }
+
+            loadingMessage.style.display = 'none';
+        }
+
+        async function showAllRoutes() {
+            resultsContainer.innerHTML = '<h2>เส้นทางทั้งหมดที่มีในระบบ</h2>';
+            loadingMessage.style.display = 'block';
+
+            initLongdoMap();
+
+            const colors = ['rgba(255, 0, 0, 0.7)', 'rgba(0, 255, 0, 0.7)', 'rgba(0, 0, 255, 0.7)', 'rgba(255, 165, 0, 0.7)', 'rgba(128, 0, 128, 0.7)'];
+            let colorIndex = 0;
+
+            allRoutes.forEach(route => {
+                const sortedStops = [...route.stops].sort((a, b) => a.order - b.order);
+                const polyline = new longdo.Polyline([], {
+                    lineStyle: 'solid',
+                    lineColor: colors[colorIndex % colors.length],
+                    lineWidth: 5
+                });
+
+                const routeStopNames = sortedStops.map(s => {
+                    const stopData = allStops.find(stop => stop.id === s.stopId);
+                    return stopData ? stopData.name : '';
+                }).filter(Boolean).join(' -> ');
+
+                resultsContainer.innerHTML += `<p><b>สาย: ${route.name}</b> - ${route.description || 'ไม่มีคำอธิบาย'} <br>
+                เส้นทาง: ${routeStopNames}</p>`;
+
+                sortedStops.forEach(s => {
+                    const stopData = allStops.find(stop => stop.id === s.stopId);
+                    if (stopData && stopData.latitude && stopData.longitude) {
+                        polyline.add(new longdo.LatLng(stopData.latitude, stopData.longitude));
+                        const stopMarker = new longdo.Marker({ lon: stopData.longitude, lat: stopData.latitude }, {
+                            title: stopData.name,
+                            detail: `สาย ${route.name}`,
+                            icon: longdo.Icon.pin()
+                        });
+                        map.Overlays.add(stopMarker);
+                    }
+                });
+                map.Overlays.add(polyline);
+                colorIndex++;
+            });
+
+            const allRoutesBound = allRoutes.reduce((bound, route) => {
+                const routeBound = new longdo.Polyline(route.stops.map(s => {
+                    const stopData = allStops.find(stop => stop.id === s.stopId);
+                    return stopData && stopData.latitude && stopData.longitude ? new longdo.LatLng(stopData.latitude, stopData.longitude) : null;
+                }).filter(Boolean)).bound();
+                return bound ? bound.union(routeBound) : routeBound;
+            }, null);
+
+            if (allRoutesBound) {
+                map.bound(allRoutesBound);
+            }
+
+            loadingMessage.style.display = 'none';
+        }
+
+        searchButton.addEventListener('click', findRoute);
+        showAllRoutesButton.addEventListener('click', showAllRoutes);
+
+        async function initApp() {
+            loadingMessage.style.display = 'block';
+            searchButton.disabled = true;
+            showAllRoutesButton.disabled = true;
+
+            await Promise.all([loadAllStopsData(), loadAllRoutesData(), loadAllRouteSegmentsData()]);
+
+            populateDropdown(originSelect, allStops);
+            populateDropdown(destinationSelect, allStops);
+
+            initLongdoMap();
+
+            loadingMessage.style.display = 'none';
+            searchButton.disabled = false;
+            showAllRoutesButton.disabled = false;
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+
+</html>
