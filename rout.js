@@ -376,7 +376,7 @@ async function findRoute() {
     } else {
         resultsContainer.innerHTML += '<p>ไม่พบเส้นทางต่อรถ 2 จุด</p>'
     }
-
+ 
     loadingMessage.style.display = 'none'
 }
 
