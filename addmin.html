@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ !DOCTYPE html>
 <html lang="th">
 
 <head>
@@ -13,8 +13,11 @@
 
     <nav>
         <button id="showSearchBtn">ค้นหาเส้นทาง</button>
-        <button id="showAddStopBtn">เพิ่มจุดจอดใหม่</button>
+
         <button id="showManageRoutesBtn">จัดการเส้นทาง</button>
+
+
+        <button id="showAddAddStopBtn">เพิ่ม/แก้ไขจุดจอด</button>
     </nav>
 
     <div id="search-container" class="container">
@@ -40,19 +43,21 @@
 
     <div id="add-stop-container" class="container">
         <h2>เพิ่มจุดจอดใหม่</h2>
-        <div class="form-group" >
+        <div class="form-group">
             <label for="stopName">ชื่อจุดจอด:</label>
             <input type="text" id="stopName" placeholder="เช่น ตลาดแม่กิมเฮง" required>
         </div>
-        <div class="form-group"style="display: none;">
+        <div class="form-group">
             <label for="stopLat">ละติจูด (Latitude):</label>
-            <input type="number" id="stopLat" step="any" placeholder="เช่น 14.9749"  >
+            <input type="text" id="stopLat" step="any" placeholder="เช่น 14.9749">
         </div>
-        <div class="form-group"style="display: none;">
+        <div class="form-group">
             <label for="stopLon">ลองจิจูด (Longitude):</label>
-            <input type="number" id="stopLon" step="any" placeholder="เช่น 102.1384"  >
+            <input type="text" id="stopLon" step="any" placeholder="เช่น 102.1384">
         </div>
+
         <button id="addStopButton">เพิ่มจุดจอด</button>
+        <button id="cancelEditStopButton" class="secondary" style="display:none;">ยกเลิกการแก้ไข</button>
         <div id="addStopStatus"></div>
 
         <h3>จุดจอดทั้งหมด</h3>
@@ -96,7 +101,7 @@
 
     <div id="status-message-global"></div>
 
-    <script  src="addmin.js" type="module">
+    <script src="addmin.js" type="module">
 
     </script>
 </body>

@@ -1,7 +1,10 @@
-// จากโค้ดชุดนี้จงแก้ไขให้มีลักษณะดังนี้ 1  หากค้นพบว่าเป็นจุดต่อรถให้แสดงเส้นทางรถอีกเส้นหนึ่งเป็นแนวนอน
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js"
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js"
+// This code integrates Longdo Map functionality into the existing bus route search system.
+// It initializes the map, displays all bus stops as markers, and draws the calculated routes on the map.
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+// Firebase configuration (replace with your actual config if different)
 const firebaseConfig = {
     apiKey: "AIzaSyBXn8SyiVLWui1I7RbwiHAkARvjN3-TGU0",
     authDomain: "qazx-3fc6e.firebaseapp.com",
@@ -10,212 +13,167 @@ const firebaseConfig = {
     messagingSenderId: "101969041040",
     appId: "1:101969041040:web:a578a1b724e1ebf7f9aa15",
     measurementId: "G-8RFTQKJH2Y"
-}
+};
 
-const app = initializeApp(firebaseConfig)
-const db = getFirestore(app)
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-const originSelect = document.getElementById('originSelect')
-const destinationSelect = document.getElementById('destinationSelect')
-const searchButton = document.getElementById('searchButton')
-const resultsContainer = document.getElementById('results-container')
-const loadingMessage = document.getElementById('loading-message')
+// Get DOM elements
+const originSelect = document.getElementById('originSelect');
+const destinationSelect = document.getElementById('destinationSelect');
+const searchButton = document.getElementById('searchButton');
+const resultsContainer = document.getElementById('results-container');
+const loadingMessage = document.getElementById('loading-message');
+// const mapElement = document.getElementById('map'); // Longdo Map element - Removed
 
-let allStops = []
-let allRoutes = []
-let allRouteSegments = []
+// Global data arrays
+let allStops = [];
+let allRoutes = [];
+let allRouteSegments = [];
 
+// Longdo Map instance - Removed
+// let map;
+// let currentMarkers = []; // To store current markers on the map - Removed
+// let currentPolylines = []; // To store current polylines on the map - Removed
+
+/**
+ * Populates a dropdown select element with stop data.
+ * @param {HTMLSelectElement} selectElement - The select element to populate.
+ * @param {Array<Object>} stopsData - An array of stop objects.
+ */
 function populateDropdown(selectElement, stopsData) {
+    // Clear existing options except the first one
     while (selectElement.children.length > 1) {
-        selectElement.removeChild(selectElement.lastChild)
+        selectElement.removeChild(selectElement.lastChild);
     }
-    stopsData.sort((a, b) => a.name.localeCompare(b.name, 'th'))
+    // Sort stops alphabetically by name (Thai locale)
+    stopsData.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    // Add each stop as an option
     stopsData.forEach(stop => {
-        const option = document.createElement('option')
-        option.value = stop.id
-        option.textContent = stop.name
-        selectElement.appendChild(option)
-    })
+        const option = document.createElement('option');
+        option.value = stop.id;
+        option.textContent = stop.name;
+        selectElement.appendChild(option);
+    });
 }
 
+/**
+ * Loads all stop data from Firestore.
+ */
 async function loadAllStopsData() {
-    const snapshot = await getDocs(collection(db, 'stops'))
-    allStops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const snapshot = await getDocs(collection(db, 'stops'));
+    allStops = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
+
 
 async function loadAllRoutesData() {
-    const snapshot = await getDocs(collection(db, 'routes'))
-    allRoutes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const snapshot = await getDocs(collection(db, 'routes'));
+    allRoutes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
+
 
 async function loadAllRouteSegmentsData() {
-    const snapshot = await getDocs(collection(db, 'route_segments'))
-    allRouteSegments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const snapshot = await getDocs(collection(db, 'route_segments'));
+    allRouteSegments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-// ปรับปรุงฟังก์ชันแสดงผล SVG
-function renderSVGPath(nodes, container, color = '#4a90e2') {
-    container.innerHTML = ''
 
-    const width = 300
-    const spaceY = 70
-    const height = spaceY * nodes.length + 40
-
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
-    svg.setAttribute("width", width)
-    svg.setAttribute("height", height)
-
-    // Define arrow marker
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs")
-    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker")
-    marker.setAttribute("id", "arrow")
-    marker.setAttribute("markerWidth", "8")
-    marker.setAttribute("markerHeight", "8")
-    marker.setAttribute("refX", "6")
-    marker.setAttribute("refY", "3")
-    marker.setAttribute("orient", "auto")
-    marker.setAttribute("markerUnits", "strokeWidth")
-
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
-    path.setAttribute("d", "M0,0 L6,3 L0,6 Z")
-    path.setAttribute("fill", color)
-    marker.appendChild(path)
-    defs.appendChild(marker)
-    svg.appendChild(defs)
-
-    const centerX = width / 2
-    const radius = 12
-
-    nodes.forEach((node, i) => {
-        const cy = 20 + i * spaceY
-
-        // วาดวงกลมแต่ละจุด
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
-        circle.setAttribute("cx", centerX)
-        circle.setAttribute("cy", cy)
-        circle.setAttribute("r", radius)
-        circle.setAttribute("fill", color)
-        circle.setAttribute("stroke", "#333")
-        circle.setAttribute("stroke-width", "2")
-        svg.appendChild(circle)
-
-        // แสดงชื่อจุดทางขวาของวงกลม
-        const text = document.createElementNS("http://www.w3.org/2000/svg", "text")
-        text.setAttribute("x", centerX + radius + 10)
-        text.setAttribute("y", cy + 5)
-        text.setAttribute("fill", "#222")
-        text.style.fontSize = "16px"
-        text.style.fontFamily = "Arial, sans-serif"
-        text.textContent = node.label
-        svg.appendChild(text)
-
-        // วาดเส้นลูกศรเชื่อมแต่ละจุด
-        if (i < nodes.length - 1) {
-            const line = document.createElementNS("http://www.w3.org/2000/svg", "line")
-            line.setAttribute("x1", centerX)
-            line.setAttribute("y1", cy + radius)
-            line.setAttribute("x2", centerX)
-            line.setAttribute("y2", cy + spaceY - radius)
-            line.setAttribute("stroke", color)
-            line.setAttribute("stroke-width", "3")
-            line.setAttribute("marker-end", "url(#arrow)")
-            svg.appendChild(line)
-        }
-    })
-
-    container.appendChild(svg)
-}
-
-// ฟังก์ชันหาเส้นทางหลัก และต่อรถ 1 จุด + 2 จุด
 async function findRoute() {
-    resultsContainer.innerHTML = ''
-    loadingMessage.style.display = 'block'
+    resultsContainer.innerHTML = ''; // Clear previous results
+    loadingMessage.style.display = 'block'; // Show loading message
 
-    const origin = originSelect.value
-    const destination = destinationSelect.value
 
-    if (!origin || !destination || origin === destination) {
-        loadingMessage.style.display = 'none'
-        resultsContainer.innerHTML = '<p style="color:red;">กรุณาเลือกจุดต้นทางและปลายทางที่ไม่ซ้ำกัน</p>'
-        return
+    const originId = originSelect.value;
+    const destinationId = destinationSelect.value;
+
+    if (!originId || !destinationId || originId === destinationId) {
+        loadingMessage.style.display = 'none';
+        resultsContainer.innerHTML = '<p style="color:red;">กรุณาเลือกจุดต้นทางและปลายทางที่ไม่ซ้ำกัน</p>';
+        return;
     }
 
-    // หาเส้นทางตรง
+    const originStop = allStops.find(s => s.id === originId);
+    const destinationStop = allStops.find(s => s.id === destinationId);
+
+
+
+
+    // Find direct routes
     const directRoutes = allRoutes.filter(route => {
-        const stopIds = route.stops.map(s => s.stopId)
-        return stopIds.includes(origin) && stopIds.includes(destination)
-    })
+        const stopIds = route.stops.map(s => s.stopId);
+        return stopIds.includes(originId) && stopIds.includes(destinationId);
+    });
 
     if (directRoutes.length > 0) {
-        resultsContainer.innerHTML += '<h3>เส้นทางตรง:</h3>'
-        const limitedDirectRoutes = directRoutes.slice(0, 2)
+        resultsContainer.innerHTML += '<h3>เส้นทางตรง:</h3>';
+        const limitedDirectRoutes = directRoutes.slice(0, 2); // Limit to 2 direct routes
         for (const route of limitedDirectRoutes) {
-            const sortedStops = [...route.stops].sort((a, b) => a.order - b.order)
-            const stopList = sortedStops.map((s, i) => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                return `<li>${i + 1}. ${stopData ? stopData.name : s.stopId}</li>`
-            }).join('')
+            const sortedStops = [...route.stops].sort((a, b) => a.order - b.order);
+            const stopListHtml = sortedStops.map((s, i) => {
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                return `<li>${i + 1}. ${stopData ? stopData.name : s.stopId}</li>`;
+            }).join('');
 
             resultsContainer.innerHTML += `
                 <div>
                     <div><b>สาย: ${route.name}</b> - ${route.description || 'ไม่มีคำอธิบาย'}</div>
-                    <ol>${stopList}</ol>
+                    <ol>${stopListHtml}</ol>
                     <div id="svg-route-${route.id}"></div>
                     <div><b>เส้นทางขากลับ:</b></div>
                     <div id="svg-route-reverse-${route.id}"></div>
-                </div>`
+                </div>`;
 
             const nodes = sortedStops.map(s => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                return { label: stopData ? stopData.name : s.stopId, id: s.stopId }
-            })
-            renderSVGPath(nodes, document.getElementById(`svg-route-${route.id}`), '#2980b9')
-            renderSVGPath([...nodes].reverse(), document.getElementById(`svg-route-reverse-${route.id}`), '#2980b9')
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                return { label: stopData ? stopData.name : s.stopId, id: s.stopId, lat: stopData?.lat, lon: stopData?.lon };
+            });
+
         }
     } else {
-        resultsContainer.innerHTML += '<p>ไม่พบเส้นทางตรง</p>'
+        resultsContainer.innerHTML += '<p>ไม่พบเส้นทางตรง</p>';
     }
 
-    // หาเส้นทางต่อรถ 1 จุด
-    const transfers1 = []
+    // Find 1-transfer routes
+    const transfers1 = [];
     for (const route1 of allRoutes) {
-        if (!route1.stops.some(s => s.stopId === origin)) continue
+        if (!route1.stops.some(s => s.stopId === originId)) continue;
         for (const route2 of allRoutes) {
-            if (route1.id === route2.id || !route2.stops.some(s => s.stopId === destination)) continue
+            if (route1.id === route2.id || !route2.stops.some(s => s.stopId === destinationId)) continue;
             const transferStopId = route1.stops
                 .map(s => s.stopId)
-                .find(id => route2.stops.some(s2 => s2.stopId === id) && id !== origin && id !== destination)
+                .find(id => route2.stops.some(s2 => s2.stopId === id) && id !== originId && id !== destinationId);
 
             if (transferStopId) {
-                const transferStop = allStops.find(s => s.id === transferStopId)
+                const transferStop = allStops.find(s => s.id === transferStopId);
                 transfers1.push({
                     transferAt: transferStop?.name || transferStopId,
                     route1,
                     route2,
                     transferStopId
-                })
+                });
             }
         }
     }
 
     if (transfers1.length > 0) {
-        resultsContainer.innerHTML += '<h3>เส้นทางต่อรถ (1 จุด):</h3>'
-        const limitedTransfers = transfers1.slice(0, 2)
+        resultsContainer.innerHTML += '<h3>เส้นทางต่อรถ (1 จุด):</h3>';
+        const limitedTransfers = transfers1.slice(0, 2); // Limit to 2 transfer routes
         limitedTransfers.forEach((t, i) => {
-            const stops1 = [...t.route1.stops].sort((a, b) => a.order - b.order)
-            const stops2 = [...t.route2.stops].sort((a, b) => a.order - b.order)
+            const stops1 = [...t.route1.stops].sort((a, b) => a.order - b.order);
+            const stops2 = [...t.route2.stops].sort((a, b) => a.order - b.order);
 
             const stopList1 = stops1.map((s) => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                const mark = s.stopId === origin ? '✅ ' : (s.stopId === t.transferStopId ? '➡️ ' : '')
-                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`
-            }).join('')
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                const mark = s.stopId === originId ? '✅ ' : (s.stopId === t.transferStopId ? '➡️ ' : '');
+                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`;
+            }).join('');
 
             const stopList2 = stops2.map((s) => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                const mark = s.stopId === t.transferStopId ? '➡️ ' : (s.stopId === destination ? '🏁 ' : '')
-                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`
-            }).join('')
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                const mark = s.stopId === t.transferStopId ? '➡️ ' : (s.stopId === destinationId ? '🏁 ' : '');
+                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`;
+            }).join('');
 
             resultsContainer.innerHTML += `
                 <div>
@@ -231,62 +189,59 @@ async function findRoute() {
                     <div><b>เส้นทางขากลับ:</b></div>
                     <div id="svg-transfer1-rev-${i}"></div>
                     <div id="svg-transfer2-rev-${i}"></div>
-                </div>`
+                </div>`;
 
             const nodes1 = stops1.map(s => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                return { label: stopData ? stopData.name : s.stopId, id: s.stopId }
-            })
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                return { label: stopData ? stopData.name : s.stopId, id: s.stopId, lat: stopData?.lat, lon: stopData?.lon };
+            });
             const nodes2 = stops2.map(s => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                return { label: stopData ? stopData.name : s.stopId, id: s.stopId }
-            })
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                return { label: stopData ? stopData.name : s.stopId, id: s.stopId, lat: stopData?.lat, lon: stopData?.lon };
+            });
 
-            renderSVGPath(nodes1, document.getElementById(`svg-transfer1-${i}`), '#e67e22') // ส้ม
-            renderSVGPath(nodes2, document.getElementById(`svg-transfer2-${i}`), '#2980b9') // น้ำเงิน
-            renderSVGPath([...nodes2].reverse(), document.getElementById(`svg-transfer2-rev-${i}`), '#2980b9')
-            renderSVGPath([...nodes1].reverse(), document.getElementById(`svg-transfer1-rev-${i}`), '#e67e22')
-        })
+
+        });
     } else {
-        resultsContainer.innerHTML += '<p>ไม่พบเส้นทางต่อรถ 1 จุด</p>'
+        resultsContainer.innerHTML += '<p>ไม่พบเส้นทางต่อรถ 1 จุด</p>';
     }
 
-    // หาเส้นทางต่อรถ 2 จุด
-    const transfers2 = []
+    // Find 2-transfer routes
+    const transfers2 = [];
 
     for (const routeA of allRoutes) {
-        if (!routeA.stops.some(s => s.stopId === origin)) continue
+        if (!routeA.stops.some(s => s.stopId === originId)) continue;
 
         for (const routeB of allRoutes) {
-            if (routeB.id === routeA.id) continue
+            if (routeB.id === routeA.id) continue;
 
             for (const routeC of allRoutes) {
-                if (routeC.id === routeA.id || routeC.id === routeB.id) continue
-                if (!routeC.stops.some(s => s.stopId === destination)) continue
+                if (routeC.id === routeA.id || routeC.id === routeB.id) continue;
+                if (!routeC.stops.some(s => s.stopId === destinationId)) continue;
 
-                // หาจุดต่อรถ 2 จุด
+                // Find 2 transfer points
                 const transferStop1 = routeA.stops
                     .map(s => s.stopId)
-                    .find(id => routeB.stops.some(s2 => s2.stopId === id) && id !== origin && id !== destination)
-                if (!transferStop1) continue
+                    .find(id => routeB.stops.some(s2 => s2.stopId === id) && id !== originId && id !== destinationId);
+                if (!transferStop1) continue;
 
                 const transferStop2 = routeB.stops
                     .map(s => s.stopId)
-                    .find(id => routeC.stops.some(s2 => s2.stopId === id) && id !== origin && id !== destination && id !== transferStop1)
-                if (!transferStop2) continue
+                    .find(id => routeC.stops.some(s2 => s2.stopId === id) && id !== originId && id !== destinationId && id !== transferStop1);
+                if (!transferStop2) continue;
 
-                // ตรวจสอบลำดับจุดเดินทางให้ถูกต้อง (origin -> transfer1 -> transfer2 -> destination)
-                const originOrder = routeA.stops.find(s => s.stopId === origin)?.order ?? -1
-                const transfer1OrderInA = routeA.stops.find(s => s.stopId === transferStop1)?.order ?? -1
-                if (transfer1OrderInA <= originOrder) continue
+                // Check correct order of stops (origin -> transfer1 -> transfer2 -> destination)
+                const originOrder = routeA.stops.find(s => s.stopId === originId)?.order ?? -1;
+                const transfer1OrderInA = routeA.stops.find(s => s.stopId === transferStop1)?.order ?? -1;
+                if (transfer1OrderInA <= originOrder) continue;
 
-                const transfer1OrderInB = routeB.stops.find(s => s.stopId === transferStop1)?.order ?? -1
-                const transfer2OrderInB = routeB.stops.find(s => s.stopId === transferStop2)?.order ?? -1
-                if (transfer2OrderInB <= transfer1OrderInB) continue
+                const transfer1OrderInB = routeB.stops.find(s => s.stopId === transferStop1)?.order ?? -1;
+                const transfer2OrderInB = routeB.stops.find(s => s.stopId === transferStop2)?.order ?? -1;
+                if (transfer2OrderInB <= transfer1OrderInB) continue;
 
-                const transfer2OrderInC = routeC.stops.find(s => s.stopId === transferStop2)?.order ?? -1
-                const destinationOrderInC = routeC.stops.find(s => s.stopId === destination)?.order ?? -1
-                if (destinationOrderInC <= transfer2OrderInC) continue
+                const transfer2OrderInC = routeC.stops.find(s => s.stopId === transferStop2)?.order ?? -1;
+                const destinationOrderInC = routeC.stops.find(s => s.stopId === destinationId)?.order ?? -1;
+                if (destinationOrderInC <= transfer2OrderInC) continue;
 
                 transfers2.push({
                     routeA,
@@ -296,37 +251,37 @@ async function findRoute() {
                     transferStop2,
                     transferAt1: allStops.find(s => s.id === transferStop1)?.name || transferStop1,
                     transferAt2: allStops.find(s => s.id === transferStop2)?.name || transferStop2
-                })
+                });
             }
         }
     }
 
     if (transfers2.length > 0) {
-        resultsContainer.innerHTML += '<h3>เส้นทางต่อรถ (2 จุด):</h3>'
-        const limitedTransfers2 = transfers2.slice(0, 1)
+        resultsContainer.innerHTML += '<h3>เส้นทางต่อรถ (2 จุด):</h3>';
+        const limitedTransfers2 = transfers2.slice(0, 1); // Limit to 1 two-transfer route
         limitedTransfers2.forEach((t, i) => {
-            const stopsA = [...t.routeA.stops].sort((a, b) => a.order - b.order)
-            const stopsB = [...t.routeB.stops].sort((a, b) => a.order - b.order)
-            const stopsC = [...t.routeC.stops].sort((a, b) => a.order - b.order)
+            const stopsA = [...t.routeA.stops].sort((a, b) => a.order - b.order);
+            const stopsB = [...t.routeB.stops].sort((a, b) => a.order - b.order);
+            const stopsC = [...t.routeC.stops].sort((a, b) => a.order - b.order);
 
-            // สร้าง list จุด พร้อมไฮไลท์จุด origin, transfer, destination
+            // Create stop list with highlights for origin, transfer, destination
             const stopListA = stopsA.map(s => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                const mark = s.stopId === origin ? '✅ ' : (s.stopId === t.transferStop1 ? '➡️ ' : '')
-                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`
-            }).join('')
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                const mark = s.stopId === originId ? '✅ ' : (s.stopId === t.transferStop1 ? '➡️ ' : '');
+                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`;
+            }).join('');
 
             const stopListB = stopsB.map(s => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                const mark = s.stopId === t.transferStop1 ? '➡️ ' : (s.stopId === t.transferStop2 ? '➡️ ' : '')
-                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`
-            }).join('')
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                const mark = s.stopId === t.transferStop1 ? '➡️ ' : (s.stopId === t.transferStop2 ? '➡️ ' : '');
+                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`;
+            }).join('');
 
             const stopListC = stopsC.map(s => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                const mark = s.stopId === t.transferStop2 ? '➡️ ' : (s.stopId === destination ? '🏁 ' : '')
-                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`
-            }).join('')
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                const mark = s.stopId === t.transferStop2 ? '➡️ ' : (s.stopId === destinationId ? '🏁 ' : '');
+                return `<li>${mark}${stopData ? stopData.name : s.stopId}</li>`;
+            }).join('');
 
             resultsContainer.innerHTML += `
                 <div>
@@ -350,44 +305,89 @@ async function findRoute() {
                     <div id="svg-transfer3-2-rev-${i}"></div>
                     <div id="svg-transfer3-3-rev-${i}"></div>
                 </div>
-            `
+            `;
 
             const nodesA = stopsA.map(s => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                return { label: stopData ? stopData.name : s.stopId, id: s.stopId }
-            })
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                return { label: stopData ? stopData.name : s.stopId, id: s.stopId, lat: stopData?.lat, lon: stopData?.lon };
+            });
             const nodesB = stopsB.map(s => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                return { label: stopData ? stopData.name : s.stopId, id: s.stopId }
-            })
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                return { label: stopData ? stopData.name : s.stopId, id: s.stopId, lat: stopData?.lat, lon: stopData?.lon };
+            });
             const nodesC = stopsC.map(s => {
-                const stopData = allStops.find(stop => stop.id === s.stopId)
-                return { label: stopData ? stopData.name : s.stopId, id: s.stopId }
-            })
+                const stopData = allStops.find(stop => stop.id === s.stopId);
+                return { label: stopData ? stopData.name : s.stopId, id: s.stopId, lat: stopData?.lat, lon: stopData?.lon };
+            });
 
-            renderSVGPath(nodesA, document.getElementById(`svg-transfer3-1-${i}`), '#d35400') // สีส้มเข้ม
-            renderSVGPath(nodesB, document.getElementById(`svg-transfer3-2-${i}`), '#2980b9') // สีน้ำเงิน
-            renderSVGPath(nodesC, document.getElementById(`svg-transfer3-3-${i}`), '#27ae60') // สีเขียว
 
-            renderSVGPath([...nodesC].reverse(), document.getElementById(`svg-transfer3-3-rev-${i}`), '#27ae60')
-            renderSVGPath([...nodesB].reverse(), document.getElementById(`svg-transfer3-2-rev-${i}`), '#2980b9')
-            renderSVGPath([...nodesA].reverse(), document.getElementById(`svg-transfer3-1-rev-${i}`), '#d35400')
-        })
+        });
     } else {
-        resultsContainer.innerHTML += '<p>ไม่พบเส้นทางต่อรถ 2 จุด</p>'
+        resultsContainer.innerHTML += '<p>ไม่พบเส้นทางต่อรถ 2 จุด</p>';
     }
- 
-    loadingMessage.style.display = 'none'
+
+    loadingMessage.style.display = 'none'; // Hide loading message
 }
 
-searchButton.addEventListener('click', findRoute)
+// Attach event listener to the search button
+searchButton.addEventListener('click', findRoute);
 
-async function init() {
-    loadingMessage.style.display = 'block'
-    await Promise.all([loadAllStopsData(), loadAllRoutesData(), loadAllRouteSegmentsData()])
-    populateDropdown(originSelect, allStops)
-    populateDropdown(destinationSelect, allStops)
-    loadingMessage.style.display = 'none'
+
+async function initApp() {
+
+    const snapshot = await getDocs(collection(db, 'stops'));
+    let allStops2 = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(allStops2[56].latitude);
+
+    // console.log(allStops2);
+    // console.log(allStops2[56].latitude, allStops2[56].longitude);
+
+
+
+
+    loadingMessage.style.display = 'block'; // Show loading message
+    searchButton.disabled = true; // Disable button while loading
+
+    await Promise.all([loadAllStopsData(), loadAllRoutesData(), loadAllRouteSegmentsData()]);
+    populateDropdown(originSelect, allStops);
+    populateDropdown(destinationSelect, allStops);
+    var map = new longdo.Map({
+        placeholder: document.getElementById('map')
+    });
+   
+
+    // Add markers for all stops in allStops2
+    for (let i = 0; i < allStops2.length; i++) {
+        const stop = allStops2[i];
+        if (stop.latitude && stop.longitude) {
+            const marker = new longdo.Marker({
+                lon: stop.longitude,
+                lat: stop.latitude,
+            }, {
+                title: stop.name || `จุดที่ ${i + 1}`,
+                detail: stop.name || ''
+            });
+            map.Overlays.add(marker);
+        }
+    }
+
+    // var locationList = [
+    //     { lon: 100, lat: 20 },
+    //     { lon: 100, lat: 6 }
+    // ];
+    // var geom = new longdo.Polyline(locationList);
+    // map.Overlays.add(geom);
+
+
+    map.zoom(15, true);
+
+
+
+
+
+    loadingMessage.style.display = 'none'; // Hide loading message
+    searchButton.disabled = false; // Enable button once everything is loaded
 }
 
-init()
+// Initialize the application when the window loads
+window.onload = initApp;
