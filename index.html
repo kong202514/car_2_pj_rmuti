@@ -1,47 +1,94 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ค้นหาเส้นทางรถสองแถวในโคราช (พร้อมแผนที่)</title>
-    <link rel="stylesheet" href="rout.css">
-    <style type="text/css">
-      
+    <title>ระบบค้นหาเส้นทางรถสองแถว</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #controls {
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        #route-buttons {
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        #route-buttons button {
+            margin: 5px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        #results-container {
+            margin-top: 20px;
+            flex-shrink: 0;
+        }
+
+        #loading-message {
+            display: none;
+            color: gray;
+            flex-shrink: 0;
+        }
+
+        #map-container {
+            flex-grow: 1;
+            /* ทำให้แผนที่ใช้พื้นที่ที่เหลือทั้งหมด */
+            width: 100%;
+            border: 1px solid #ccc;
+            min-height: 500px;
+            /* กำหนดความสูงขั้นต่ำไว้เผื่อกรณีที่หน้าจอเล็ก */
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            /* ทำให้แผนที่เต็ม div container */
+        }
     </style>
+
+    <script type="text/javascript" src="https://api.longdo.com/map/?key=042135539c8848ee0c5f7629520812a8"></script>
+
 </head>
 
 <body>
-    <h1>ค้นหาเส้นทางรถสองแถวในเมืองนครราชสีมา</h1>
+    <h1>ค้นหาเส้นทางรถสองแถว</h1>
 
-    <div id="search-container">
-        <div class="form-group">
-            <label for="originSelect">จุดต้นทาง:</label>
-            <select id="originSelect">
-                <option value="">เลือกจุดต้นทาง</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="destinationSelect">จุดปลายทาง:</label>
-            <select id="destinationSelect">
-                <option value="">เลือกจุดปลายทาง</option>
-            </select>
-        </div>
-        <button id="searchButton">ค้นหาเส้นทาง</button>
-    </div>
- 
-
-    <div id="loading-message">
-        <p>กำลังค้นหาข้อมูล... โปรดรอสักครู่</p>
+    <div id="controls">
+        <label for="originSelect">ต้นทาง:</label>
+        <select id="originSelect"></select>
+        <label for="destinationSelect">ปลายทาง:</label>
+        <select id="destinationSelect"></select>
+        <button id="searchButton">ค้นหา</button>
     </div>
 
+    <hr>
+
+    <h3>เลือกสายรถเพื่อแสดงบนแผนที่:</h3>
+    <div id="route-buttons">
+        <button id="show-all-routes-button">แสดงทุกสาย</button>
+    </div>
+
+    <p id="loading-message">กำลังโหลดข้อมูล...</p>
 
 
-        <div id="map" style="width: 100%; height: 600px;"></div>
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
 
     <div id="results-container"></div>
+    <script type="module" src="rout.js"></script>
+</body>
 
-    <script type="text/javascript" src="https://api.longdo.com/map/?key=042135539c8848ee0c5f7629520812a8"></script>
-    <script src="rout.js" type="module"></script>
-</body> 
 </html>
