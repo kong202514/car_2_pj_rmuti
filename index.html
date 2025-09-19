@@ -5,192 +5,305 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบค้นหาเส้นทางรถสองแถว</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* General body and font styles */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Sarabun', sans-serif;
             margin: 0;
             padding: 24px;
-            display: flex;
-            flex-direction: column;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fad0c4, #fbc2eb, #a6c1ee, #a6c1ee, #fbc2eb, #ffecd2, #fbc2eb, #a18cd1, #30cfd0, #30cfd0, #33ccff, #99ff99, #66b5ff, #c3e5ff, #84fab0, #8fd3f4, #d3c4e5, #d3c4e5, #a5d299, #f77062, #96e6a1, #fbc8d4, #b2fcfd, #c3e5ff, #c3e5ff, #d3c4e5, #a18cd1, #fbc8d4, #84fab0, #8fd3f4, #fbc2eb, #ffecd2, #fbc2eb, #a18cd1, #30cfd0, #33ccff, #ff9a9e, #fad0c4, #fad0c4, #fbc2eb, #a6c1ee, #a6c1ee, #fbc2eb);
+            background-size: 400% 400%;
+            animation: gradient-animation 60s ease infinite;
+            color: #000000;
             min-height: 100vh;
-            background-color: #f4f7f9;
-            color: #333;
-        }
-
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        h3 {
-            color: #34495e;
-            margin-top: 24px;
-            margin-bottom: 12px;
-        }
-
-        /* Container for controls and results */
-        #main-content {
             display: flex;
             flex-direction: column;
-            flex-grow: 1;
-        }
-
-        /* Controls Section */
-        #controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            justify-content: center;
             align-items: center;
-            padding: 16px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 24px;
         }
 
-        #controls label {
-            font-weight: 600;
-            color: #555;
+        @keyframes gradient-animation {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
-        #controls select,
-        #controls button {
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        #controls select:focus,
-        #controls button:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-        }
-
-        #searchButton {
-            background-color: #3498db;
-            color: #fff;
-            font-weight: 700;
-            border: none;
-        }
-
-        #searchButton:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-        }
-
-        /* Route Buttons Section */
-        #route-buttons {
+        .container {
+            max-width: 900px;
+            width: 100%;
+            margin: auto;
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        #route-buttons button {
-            padding: 10px 18px;
-            border: 1px solid #bdc3c7;
-            border-radius: 20px;
-            background-color: #ecf0f1;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        #route-buttons button:hover {
-            background-color: #dce0e1;
-        }
-
-        #route-buttons button.active {
-            background-color: #2ecc71;
-            color: #fff;
-            border-color: #27ae60;
-            font-weight: 600;
-        }
-
-        /* Map and Results Layout */
-        #content-area {
-            display: flex;
-            flex-direction: column-reverse;
-            /* Put results above the map on small screens */
+            flex-direction: column;
             gap: 24px;
             flex-grow: 1;
         }
 
-        @media (min-width: 768px) {
-            #content-area {
-                flex-direction: row;
-                /* Put results and map side by side on larger screens */
-            }
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 24px;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
         }
 
-        #results-container {
-            width: 100%;
-            padding: 16px;
-            background-color: #fff;
+        h3 {
+            color: #333;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .card {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            padding: 24px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 150px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        select {
+            padding: 12px 16px;
+            border: 2px solid transparent;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            background-color: #f0f4f8;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
-        #map-container {
-            flex-grow: 1;
-            width: 100%;
-            height: 500px;
+        select:focus {
+            outline: none;
+            border-color: #ff7f50;
+        }
+
+        button {
+            padding: 14px 28px;
+            border: none;
             border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
-        #map {
-            width: 100%;
-            height: 100%;
+        #searchButton {
+            background: linear-gradient(45deg, #00a8ff, #66b5ff);
+            color: #fff;
+            margin-top: 28px;
+        }
+
+        #searchButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 168, 255, 0.5);
+        }
+
+        #route-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        #route-buttons button {
+            background: linear-gradient(45deg, #ff7f50, #f8d487);
+            color: #fff;
+        }
+
+        #route-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 127, 80, 0.5);
+        }
+
+        #route-buttons button.active {
+            background: linear-gradient(45deg, #2ecc71, #99ff99);
+            color: #fff;
         }
 
         #loading-message {
             display: none;
             text-align: center;
-            color: #7f8c8d;
+            color: #555;
             font-size: 1.2em;
-            margin-top: 20px;
+            padding: 20px;
         }
 
         .result-item {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 16px 0;
+            border-bottom: 1px solid #e0e0e0;
         }
 
         .result-item:last-child {
             border-bottom: none;
         }
+
+        .result-item h4 {
+            color: #3498db;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .result-item p {
+            margin: 4px 0 0 0;
+            color: #555;
+        }
+
+        .text-error {
+            color: #e74c3c;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .text-info {
+            color: #777;
+            text-align: center;
+            font-style: italic;
+        }
+        .card-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-header h4 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .card-header .description {
+            font-style: italic;
+            color: var(--text-muted);
+            margin: 4px 0 0 0;
+        }
+
+        .stop-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .stop-list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 1em;
+            color: var(--text-dark);
+        }
+
+        .stop-list-item:last-child {
+            margin-bottom: 0;
+        }
+        .transfer-card {
+            color: #000000;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .transfer-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .transfer-card h4 {
+            color: #000000;
+            font-weight: 700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            margin-bottom: 15px;
+        }
+
+        .transfer-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .transfer-step i {
+            font-size: 1.2em;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .transfer-step p {
+            margin: 0;
+            font-size: 1em;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .transfer-step strong {
+            font-weight: 600;
+        }
     </style>
-    <script type="text/javascript" src="https://api.longdo.com/map/?key=042135539c8848ee0c5f7629520812a8"></script>
 </head>
 
 <body>
-    <h1><span style="color: #3498db;">🗺️</span> ระบบค้นหาเส้นทางรถสองแถว</h1>
+    <div class="container">
+        <h1><i class="fa-solid fa-bus-simple" style="color: #ff7f50;"></i> ค้นหาเส้นทางรถสองแถว</h1>
 
-    <div id="controls">
-        <label for="originSelect">ต้นทาง:</label>
-        <select id="originSelect"></select>
-        <label for="destinationSelect">ปลายทาง:</label>
-        <select id="destinationSelect"></select>
-        <button id="searchButton">ค้นหาเส้นทาง</button>
-    </div>
-
- 
-
-    <div id="main-content">
-        <p id="loading-message">กำลังโหลดข้อมูล...</p>
-        <div id="content-area">
-            <div id="results-container">
-               
+        <div id="controls" class="card">
+            <div class="form-group">
+                <label for="originSelect">ต้นทาง:</label>
+                <select id="originSelect"></select>
             </div>
-            
+            <div class="form-group">
+                <label for="destinationSelect">ปลายทาง:</label>
+                <select id="destinationSelect"></select>
+            </div>
+            <button id="searchButton">
+                <i class="fa-solid fa-magnifying-glass" style="margin-right: 8px;"></i> ค้นหาเส้นทาง
+            </button>
+        </div>
+
+        <div id="route-buttons">
+            <button id="show-all-routes-button" class="active">
+                <i class="fa-solid fa-road" style="margin-right: 8px;"></i> แสดงทุกสาย
+            </button>
+        </div>
+
+        <p id="loading-message">กำลังโหลดข้อมูล...</p>
+
+        <div id="results-container" class="card">
+            <p class="text-info">กรุณาเลือกต้นทางและปลายทางเพื่อค้นหาเส้นทาง หรือกดปุ่ม "แสดงทุกสาย"
+                เพื่อดูรายละเอียดทั้งหมด</p>
         </div>
     </div>
     <script type="module" src="rout.js"></script>
