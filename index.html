@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="th">
 
 <head>
@@ -6,88 +6,193 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบค้นหาเส้นทางรถสองแถว</title>
     <style>
+        /* General body and font styles */
         body {
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh;
+            background-color: #f4f7f9;
+            color: #333;
         }
 
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        h3 {
+            color: #34495e;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+
+        /* Container for controls and results */
+        #main-content {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        /* Controls Section */
         #controls {
-            margin-bottom: 20px;
-            flex-shrink: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
         }
 
+        #controls label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        #controls select,
+        #controls button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #controls select:focus,
+        #controls button:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        #searchButton {
+            background-color: #3498db;
+            color: #fff;
+            font-weight: 700;
+            border: none;
+        }
+
+        #searchButton:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        /* Route Buttons Section */
         #route-buttons {
-            margin-bottom: 20px;
-            flex-shrink: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
         }
 
         #route-buttons button {
-            margin: 5px;
-            padding: 10px;
+            padding: 10px 18px;
+            border: 1px solid #bdc3c7;
+            border-radius: 20px;
+            background-color: #ecf0f1;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #route-buttons button:hover {
+            background-color: #dce0e1;
+        }
+
+        #route-buttons button.active {
+            background-color: #2ecc71;
+            color: #fff;
+            border-color: #27ae60;
+            font-weight: 600;
+        }
+
+        /* Map and Results Layout */
+        #content-area {
+            display: flex;
+            flex-direction: column-reverse;
+            /* Put results above the map on small screens */
+            gap: 24px;
+            flex-grow: 1;
+        }
+
+        @media (min-width: 768px) {
+            #content-area {
+                flex-direction: row;
+                /* Put results and map side by side on larger screens */
+            }
         }
 
         #results-container {
-            margin-top: 20px;
-            flex-shrink: 0;
-        }
-
-        #loading-message {
-            display: none;
-            color: gray;
-            flex-shrink: 0;
+            width: 100%;
+            padding: 16px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         #map-container {
             flex-grow: 1;
-            /* ทำให้แผนที่ใช้พื้นที่ที่เหลือทั้งหมด */
             width: 100%;
-            border: 1px solid #ccc;
-            min-height: 500px;
-            /* กำหนดความสูงขั้นต่ำไว้เผื่อกรณีที่หน้าจอเล็ก */
+            height: 500px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         #map {
             width: 100%;
             height: 100%;
-            /* ทำให้แผนที่เต็ม div container */
+        }
+
+        #loading-message {
+            display: none;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+
+        .result-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
         }
     </style>
-
     <script type="text/javascript" src="https://api.longdo.com/map/?key=042135539c8848ee0c5f7629520812a8"></script>
-
 </head>
 
 <body>
-    <h1>ค้นหาเส้นทางรถสองแถว</h1>
+    <h1><span style="color: #3498db;">🗺️</span> ระบบค้นหาเส้นทางรถสองแถว</h1>
 
     <div id="controls">
         <label for="originSelect">ต้นทาง:</label>
         <select id="originSelect"></select>
         <label for="destinationSelect">ปลายทาง:</label>
         <select id="destinationSelect"></select>
-        <button id="searchButton">ค้นหา</button>
+        <button id="searchButton">ค้นหาเส้นทาง</button>
     </div>
 
-    <hr>
+ 
 
-    <h3>เลือกสายรถเพื่อแสดงบนแผนที่:</h3>
-    <div id="route-buttons">
-        <button id="show-all-routes-button">แสดงทุกสาย</button>
+    <div id="main-content">
+        <p id="loading-message">กำลังโหลดข้อมูล...</p>
+        <div id="content-area">
+            <div id="results-container">
+               
+            </div>
+            
+        </div>
     </div>
-
-    <p id="loading-message">กำลังโหลดข้อมูล...</p>
-
-
-    <div id="map-container">
-        <div id="map"></div>
-    </div>
-
-    <div id="results-container"></div>
     <script type="module" src="rout.js"></script>
 </body>
 
