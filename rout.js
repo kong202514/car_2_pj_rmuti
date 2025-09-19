@@ -211,7 +211,11 @@ class RouteFinder {
             return;
         }
 
-        let allRoutesHtml = '<div class="result-section"><h3><i class="fa-solid fa-road" style="color: #2ecc71;"></i> รายละเอียดเส้นทางทั้งหมด:</h3>';
+        let allRoutesHtml = `
+        <div class="result-section">
+            <h3><i class="fa-solid fa-road" style="color: #2ecc71;"></i> รายละเอียดเส้นทางทั้งหมด:</h3>
+            <div class="routes-grid-container">`; // New grid container
+
         this.routes.forEach(route => {
             const sortedStops = [...route.stops].sort((a, b) => a.order - b.order);
             const stopListHtml = sortedStops.map(s => {
@@ -236,7 +240,10 @@ class RouteFinder {
                 </div>
             </div>`;
         });
-        allRoutesHtml += '</div>';
+
+        allRoutesHtml += `
+            </div>
+        </div>`; // Close the new grid container
         this.ui.resultsContainer.innerHTML = allRoutesHtml;
         this.ui.loadingMessage.style.display = 'none';
     }
