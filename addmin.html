@@ -1,107 +1,1148 @@
- !DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="th">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจัดการเส้นทางรถสองแถว (นครราชสีมา)</title>
-    <link rel="stylesheet" href="addmin.css">
+    <title>ระบบจัดการเส้นทางรถสองแถวโคราช (Admin Portal)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons for visual enhancements -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Sarabun) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* Custom Scrollbar for better UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
 </head>
 
-<body>
-    <h1>ระบบจัดการเส้นทางรถสองแถวในเมืองนครราชสีมา</h1>
+<body class="min-h-screen text-slate-800 flex flex-col">
 
-    <nav>
-        <button id="showSearchBtn">ค้นหาเส้นทาง</button>
-
-        <button id="showManageRoutesBtn">จัดการเส้นทาง</button>
-
-
-        <button id="showAddAddStopBtn">เพิ่ม/แก้ไขจุดจอด</button>
-    </nav>
-
-    <div id="search-container" class="container">
-        <h2>ค้นหาเส้นทาง</h2>
-        <div class="form-group">
-            <label for="originSelect">จุดต้นทาง:</label>
-            <select id="originSelect">
-                <option value="">เลือกจุดต้นทาง</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="destinationSelect">จุดปลายทาง:</label>
-            <select id="destinationSelect">
-                <option value="">เลือกจุดปลายทาง</option>
-            </select>
-        </div>
-        <button id="searchButton">ค้นหาเส้นทาง</button>
-        <div id="loading-message">
-            <p>กำลังค้นหาข้อมูล... โปรดรอสักครู่</p>
-        </div>
-        <div id="results-container"></div>
-    </div>
-
-    <div id="add-stop-container" class="container">
-        <h2>เพิ่มจุดจอดใหม่</h2>
-        <div class="form-group">
-            <label for="stopName">ชื่อจุดจอด:</label>
-            <input type="text" id="stopName" placeholder="เช่น ตลาดแม่กิมเฮง" required>
-        </div>
-        <div class="form-group">
-            <label for="stopLat">ละติจูด (Latitude):</label>
-            <input type="text" id="stopLat" step="any" placeholder="เช่น 14.9749">
-        </div>
-        <div class="form-group">
-            <label for="stopLon">ลองจิจูด (Longitude):</label>
-            <input type="text" id="stopLon" step="any" placeholder="เช่น 102.1384">
-        </div>
-
-        <button id="addStopButton">เพิ่มจุดจอด</button>
-        <button id="cancelEditStopButton" class="secondary" style="display:none;">ยกเลิกการแก้ไข</button>
-        <div id="addStopStatus"></div>
-
-        <h3>จุดจอดทั้งหมด</h3>
-        <div id="allStopsList">
-        </div>
-    </div>
-
-    <div id="manage-routes-container" class="container">
-        <h2>จัดการเส้นทาง</h2>
-
-        <h3>เพิ่ม/แก้ไขเส้นทาง</h3>
-        <div class="form-group">
-            <label for="routeName">ชื่อเส้นทาง:</label>
-            <input type="text" id="routeName" placeholder="เช่น สาย 1 (หัวทะเล - สถานีรถไฟ)" required>
-        </div>
-        <div class="form-group">
-            <label for="routeColor">สีประจำเส้นทาง (เช่น #FF0000):</label>
-            <input type="text" id="routeColor" placeholder="เช่น #FF0000" value="#007bff">
-        </div>
-        <div class="form-group">
-            <label for="routeDescription">รายละเอียดเส้นทาง:</label>
-            <textarea id="routeDescription" rows="3"
-                placeholder="เช่น วิ่งจากหัวทะเล ผ่านตลาดแม่กิมเฮง ไปยังสถานีรถไฟ"></textarea>
-        </div>
-
-        <div class="form-group">
-            <label>จุดจอดในเส้นทาง (เรียงตามลำดับ):</label>
-            <div id="routeStopsContainer">
+    <!-- Header / Navbar -->
+    <header class="bg-gradient-to-r from-orange-600 to-amber-500 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-white text-orange-600 p-2.5 rounded-full shadow-inner">
+                    <i class="fa-solid fa-bus text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">KORAT SONGTAEW</h1>
+                    <p class="text-xs text-orange-100">ระบบจัดการและค้นหาเส้นทางรถสองแถว นครราชสีมา</p>
+                </div>
             </div>
-            <button id="addRouteStopBtn" class="secondary">เพิ่มจุดจอดในเส้นทาง</button>
+            
+            <!-- Navigation Tabs -->
+            <nav class="flex bg-orange-700/30 p-1.5 rounded-xl gap-1 w-full sm:w-auto overflow-x-auto">
+                <button id="showSearchBtn" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/10 text-white [&.active]:bg-white [&.active]:text-orange-600 active">
+                    <i class="fa-solid fa-magnifying-glass"></i> ค้นหาเส้นทาง
+                </button>
+                <button id="showAddAddStopBtn" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/10 text-white [&.active]:bg-white [&.active]:text-orange-600">
+                    <i class="fa-solid fa-map-pin"></i> จุดจอดทั้งหมด
+                </button>
+                <button id="showManageRoutesBtn" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/10 text-white [&.active]:bg-white [&.active]:text-orange-600">
+                    <i class="fa-solid fa-route"></i> จัดการเส้นทาง
+                </button>
+            </nav>
         </div>
+    </header>
 
-        <button id="saveRouteButton">บันทึกเส้นทาง</button>
-        <button id="cancelEditRouteButton" class="secondary" style="display:none;">ยกเลิกการแก้ไข</button>
-        <div id="manageRouteStatus"></div>
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        
+        <!-- Global Custom Toast Notification System (Replaces browser alerts) -->
+        <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none max-w-sm w-full"></div>
 
-        <h3>เส้นทางทั้งหมด</h3>
-        <div id="allRoutesList">
+        <!-- SEARCH SECTION -->
+        <section id="search-container" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8 space-y-6 transition-all duration-300">
+            <div class="border-b border-slate-100 pb-4">
+                <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-search-location text-orange-500"></i> ค้นหาเส้นทางเดินรถสองแถว
+                </h2>
+                <p class="text-sm text-slate-500 mt-1">ค้นหาสายรถสองแถวที่วิ่งผ่านจากจุดเริ่มต้นไปยังปลายทางที่คุณต้องการ</p>
+            </div>
+
+            <!-- Form -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label for="originSelect" class="block text-sm font-semibold text-slate-700">
+                        <i class="fa-solid fa-circle text-emerald-500 text-xs mr-1"></i> เลือกจุดต้นทาง
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-location-dot"></i>
+                        </span>
+                        <select id="originSelect" class="block w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-base">
+                            <option value="">-- เลือกจุดเริ่มต้น --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="destinationSelect" class="block text-sm font-semibold text-slate-700">
+                        <i class="fa-solid fa-circle text-rose-500 text-xs mr-1"></i> เลือกจุดปลายทาง
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-flag-checkered"></i>
+                        </span>
+                        <select id="destinationSelect" class="block w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-base">
+                            <option value="">-- เลือกจุดปลายทาง --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button id="searchButton" class="w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg shadow-orange-600/20 hover:shadow-orange-600/30 transition-all duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass"></i> ค้นหาเส้นทาง
+                </button>
+            </div>
+
+            <!-- Loading Message -->
+            <div id="loading-message" class="hidden py-12 text-center space-y-3">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-orange-500 border-t-transparent"></div>
+                <p class="text-slate-500 text-sm font-medium">กำลังค้นหาข้อมูลเส้นทางเดินรถสองแถวที่เหมาะสม...</p>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results-container" class="space-y-4 pt-4"></div>
+        </section>
+
+
+        <!-- MANAGE STOPS SECTION -->
+        <section id="add-stop-container" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 transition-all duration-300">
+            
+            <!-- Left Panel: Add / Edit Form -->
+            <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-6 h-fit">
+                <div class="border-b border-slate-100 pb-4">
+                    <h2 id="stopFormTitle" class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-orange-500"></i> เพิ่มจุดจอดใหม่
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">ระบุชื่อและพิกัดภูมิศาสตร์เพื่อเพิ่มเป็นหมุดจุดจอดในระบบสองแถว</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="space-y-1.5">
+                        <label for="stopName" class="text-sm font-semibold text-slate-700">ชื่อจุดจอด <span class="text-rose-500">*</span></label>
+                        <input type="text" id="stopName" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm" placeholder="เช่น ตลาดแม่กิมเฮง, คลังพลาซ่า" required>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label for="stopLat" class="text-sm font-semibold text-slate-700">ละติจูด (Lat)</label>
+                            <input type="number" id="stopLat" step="any" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm" placeholder="เช่น 14.9749">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label for="stopLon" class="text-sm font-semibold text-slate-700">ลองจิจูด (Lon)</label>
+                            <input type="number" id="stopLon" step="any" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm" placeholder="เช่น 102.1384">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2 pt-2">
+                    <button id="addStopButton" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl transition-all duration-150 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-save"></i> บันทึกจุดจอด
+                    </button>
+                    <button id="cancelEditStopButton" class="hidden w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl transition-all duration-150">
+                        ยกเลิกการแก้ไข
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: List and Summary of Stops -->
+            <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-[600px]">
+                <div class="border-b border-slate-100 pb-4 mb-4 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-list-ul text-orange-500"></i> รายชื่อจุดจอดทั้งหมด
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">จุดจอดสองแถวในเขตเทศบาลนครราชสีมา</p>
+                    </div>
+                    <span id="stopsCountBadge" class="bg-orange-50 text-orange-600 text-xs font-bold px-3 py-1 rounded-full">0 จุดจอด</span>
+                </div>
+
+                <!-- Live Search in List -->
+                <div class="relative mb-4">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input type="text" id="searchStopInput" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="พิมพ์เพื่อค้นหาจุดจอดในรายการ...">
+                </div>
+
+                <div id="allStopsList" class="flex-grow overflow-y-auto space-y-2 pr-1">
+                    <div class="text-center py-12 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner animate-spin text-2xl mb-2"></i>
+                        <p>กำลังโหลดข้อมูลจุดจอด...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- MANAGE ROUTES SECTION -->
+        <section id="manage-routes-container" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 transition-all duration-300">
+            
+            <!-- Left: Add/Edit Route Form -->
+            <div class="lg:col-span-6 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-6">
+                <div class="border-b border-slate-100 pb-4 flex justify-between items-center">
+                    <div>
+                        <h2 id="routeFormTitle" class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-route text-orange-500"></i> เพิ่มเส้นทางใหม่
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">กำหนดสายรถสองแถว รายละเอียด และเชื่อมโยงจุดจอดตามลำดับ</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="sm:col-span-2 space-y-1.5">
+                            <label for="routeName" class="text-sm font-semibold text-slate-700">ชื่อเส้นทาง (สาย) <span class="text-rose-500">*</span></label>
+                            <input type="text" id="routeName" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm" placeholder="เช่น สาย 1 (หัวทะเล - รสพ.)" required>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label for="routeColor" class="text-sm font-semibold text-slate-700">โทนสีหลักเส้นทาง</label>
+                            <div class="flex gap-2">
+                                <input type="color" id="routeColor" class="w-10 h-9 p-0.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer" value="#f97316">
+                                <input type="text" id="routeColorHex" class="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs text-center uppercase" value="#F97316" placeholder="#FFFFFF">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label for="routeDescription" class="text-sm font-semibold text-slate-700">รายละเอียดข้อมูลเส้นทาง</label>
+                        <textarea id="routeDescription" rows="2" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm" placeholder="เช่น เริ่มจากหัวทะเล ผ่านห้าแยกประตูนํ้า ผ่านตลาดแม่กิมเฮง..."></textarea>
+                    </div>
+
+                    <div class="border-t border-slate-100 pt-4 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                                <i class="fa-solid fa-route text-orange-500 text-xs"></i> ลำดับจุดจอดที่รถวิ่งผ่าน <span class="text-xs font-normal text-slate-400">(อย่างน้อย 2 จุดจอด)</span>
+                            </span>
+                            <button id="addRouteStopBtn" class="text-xs font-semibold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1">
+                                <i class="fa-solid fa-plus-circle"></i> แทรกจุดจอดเพิ่ม
+                            </button>
+                        </div>
+
+                        <!-- Drag/Drop List or Sortable List -->
+                        <div id="routeStopsContainer" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                            <!-- Stops inside route will be appended here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 pt-2">
+                    <button id="saveRouteButton" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition-all duration-150 flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/10">
+                        <i class="fa-solid fa-circle-check"></i> บันทึกข้อมูลเส้นทาง
+                    </button>
+                    <button id="cancelEditRouteButton" class="hidden w-full sm:w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl transition-all duration-150">
+                        ยกเลิก
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: List of Registered Routes -->
+            <div class="lg:col-span-6 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-[650px]">
+                <div class="border-b border-slate-100 pb-4 mb-4 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-road text-orange-500"></i> สายรถสองแถวทั้งหมด
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">ตรวจสอบและบริหารจัดการเส้นทางรถสองแถวในฐานข้อมูล</p>
+                    </div>
+                    <span id="routesCountBadge" class="bg-orange-50 text-orange-600 text-xs font-bold px-3 py-1 rounded-full">0 สาย</span>
+                </div>
+
+                <div id="allRoutesList" class="flex-grow overflow-y-auto space-y-3 pr-1">
+                    <div class="text-center py-12 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner animate-spin text-2xl mb-2"></i>
+                        <p>กำลังโหลดข้อมูลสายรถสองแถว...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 mt-12 py-6 text-center text-xs">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p class="font-medium text-slate-300">ระบบฐานข้อมูลเส้นทางเดินรถสองแถว เทศบาลนครนครราชสีมา (โคราช)</p>
+            <p>พัฒนาโดยการประยุกต์ใช้งาน Cloud Firestore NoSQL Database สำหรับการให้บริการข้อมูลเดินทางอย่างยั่งยืน</p>
+            <p class="text-slate-600">© 2026 Admin Management Portal. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Custom Confirmation Modal (Replace native confirm) -->
+    <div id="custom-confirm-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center gap-3 text-amber-500">
+                <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+                <h3 class="text-lg font-bold text-slate-900">โปรดยืนยันการดำเนินงาน</h3>
+            </div>
+            <p id="confirm-modal-text" class="text-sm text-slate-600 leading-relaxed"></p>
+            <div class="flex justify-end gap-2.5 pt-2">
+                <button id="confirm-cancel-btn" class="px-4 py-2 rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 text-sm font-semibold transition-all">ยกเลิก</button>
+                <button id="confirm-ok-btn" class="px-4 py-2 rounded-xl text-white bg-rose-600 hover:bg-rose-700 text-sm font-semibold transition-all">ยืนยันการลบ</button>
+            </div>
         </div>
     </div>
 
-    <div id="status-message-global"></div>
+    <!-- Firebase Script with complete functional rewrite -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
-    <script src="addmin.js" type="module">
+        // Firebase Configuration (Same as provided credentials)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXn8SyiVLWui1I7RbwiHAkARvjN3-TGU0",
+            authDomain: "qazx-3fc6e.firebaseapp.com",
+            projectId: "qazx-3fc6e",
+            storageBucket: "qazx-3fc6e.firebasestorage.app",
+            messagingSenderId: "101969041040",
+            appId: "1:101969041040:web:a578a1b724e1ebf7f9aa15",
+            measurementId: "G-8RFTQKJH2Y"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Core App States
+        let allStops = [];
+        let allRoutes = [];
+        let editingRouteId = null;
+        let editingStopId = null;
+
+        let lastStopId = 0;
+        let lastRouteId = 0;
+        let lastSegmentId = 0;
+
+        // Custom Confirmation Modal Helper
+        let confirmPromiseResolver = null;
+        const customConfirm = (message) => {
+            document.getElementById('confirm-modal-text').textContent = message;
+            document.getElementById('custom-confirm-modal').classList.remove('hidden');
+            return new Promise((resolve) => {
+                confirmPromiseResolver = resolve;
+            });
+        };
+
+        document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+            document.getElementById('custom-confirm-modal').classList.add('hidden');
+            if (confirmPromiseResolver) confirmPromiseResolver(false);
+        });
+
+        document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+            document.getElementById('custom-confirm-modal').classList.add('hidden');
+            if (confirmPromiseResolver) confirmPromiseResolver(true);
+        });
+
+        // Toast Notification Function
+        const showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-3 px-4 py-3.5 rounded-xl border shadow-lg transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto w-full`;
+            
+            if (type === 'success') {
+                toast.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
+                toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i><span class="text-sm font-semibold">${message}</span>`;
+            } else if (type === 'error') {
+                toast.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-800');
+                toast.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-500 text-lg"></i><span class="text-sm font-semibold">${message}</span>`;
+            } else {
+                toast.classList.add('bg-blue-50', 'border-blue-200', 'text-blue-800');
+                toast.innerHTML = `<i class="fa-solid fa-circle-info text-blue-500 text-lg"></i><span class="text-sm font-semibold">${message}</span>`;
+            }
+
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            // Auto-dismiss
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 4000);
+        };
+
+        // DOM Elements
+        const showSearchBtn = document.getElementById('showSearchBtn');
+        const showAddStopBtn = document.getElementById('showAddAddStopBtn');
+        const showManageRoutesBtn = document.getElementById('showManageRoutesBtn');
+
+        const searchContainer = document.getElementById('search-container');
+        const addStopContainer = document.getElementById('add-stop-container');
+        const manageRoutesContainer = document.getElementById('manage-routes-container');
+
+        const originSelect = document.getElementById('originSelect');
+        const destinationSelect = document.getElementById('destinationSelect');
+        const searchButton = document.getElementById('searchButton');
+        const loadingMessage = document.getElementById('loading-message');
+        const resultsContainer = document.getElementById('results-container');
+
+        const stopNameInput = document.getElementById('stopName');
+        const stopLatInput = document.getElementById('stopLat');
+        const stopLonInput = document.getElementById('stopLon');
+        const addStopButton = document.getElementById('addStopButton');
+        const cancelEditStopButton = document.getElementById('cancelEditStopButton');
+        const allStopsList = document.getElementById('allStopsList');
+        const stopsCountBadge = document.getElementById('stopsCountBadge');
+        const searchStopInput = document.getElementById('searchStopInput');
+
+        const routeNameInput = document.getElementById('routeName');
+        const routeColorInput = document.getElementById('routeColor');
+        const routeColorHex = document.getElementById('routeColorHex');
+        const routeDescriptionInput = document.getElementById('routeDescription');
+        const routeStopsContainer = document.getElementById('routeStopsContainer');
+        const addRouteStopBtn = document.getElementById('addRouteStopBtn');
+        const saveRouteButton = document.getElementById('saveRouteButton');
+        const cancelEditRouteButton = document.getElementById('cancelEditRouteButton');
+        const allRoutesList = document.getElementById('allRoutesList');
+        const routesCountBadge = document.getElementById('routesCountBadge');
+
+        // ID Auto Generator Helper with Firestore lookup
+        const generateNextId = async (collectionName, currentMaxId) => {
+            try {
+                const querySnapshot = await getDocs(collection(db, collectionName));
+                let maxId = currentMaxId;
+                querySnapshot.forEach(doc => {
+                    const docId = parseInt(doc.id, 10);
+                    if (!isNaN(docId) && docId > maxId) {
+                        maxId = docId;
+                    }
+                });
+                return String(maxId + 1);
+            } catch (error) {
+                console.error("Error generating ID:", error);
+                return String(currentMaxId + 1);
+            }
+        };
+
+        // Screen Navigation & Active state controller
+        const showSection = async (sectionId) => {
+            const sections = [searchContainer, addStopContainer, manageRoutesContainer];
+            const buttons = [showSearchBtn, showAddStopBtn, showManageRoutesBtn];
+
+            sections.forEach(sec => {
+                if (sec.id === sectionId) {
+                    sec.classList.remove('hidden');
+                } else {
+                    sec.classList.add('hidden');
+                }
+            });
+
+            buttons.forEach(btn => {
+                const matchSearch = btn.id === 'showSearchBtn' && sectionId === 'search-container';
+                const matchStop = btn.id === 'showAddAddStopBtn' && sectionId === 'add-stop-container';
+                const matchRoute = btn.id === 'showManageRoutesBtn' && sectionId === 'manage-routes-container';
+
+                if (matchSearch || matchStop || matchRoute) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Trigger specific page data loaders
+            if (sectionId === 'search-container') {
+                await loadStopsIntoDropdowns();
+            } else if (sectionId === 'add-stop-container') {
+                await loadAllStopsForList();
+                clearAddStopForm();
+            } else if (sectionId === 'manage-routes-container') {
+                await loadAllStopsForRouteForm();
+                await loadAllRoutesForList();
+                clearRouteForm();
+            }
+        };
+
+        // Navigation Bindings
+        showSearchBtn.addEventListener('click', () => showSection('search-container'));
+        showAddStopBtn.addEventListener('click', () => showSection('add-stop-container'));
+        showManageRoutesBtn.addEventListener('click', () => showSection('manage-routes-container'));
+
+        // Sync route color picker with HEX input box
+        routeColorInput.addEventListener('input', (e) => {
+            routeColorHex.value = e.target.value.toUpperCase();
+        });
+        routeColorHex.addEventListener('input', (e) => {
+            let val = e.target.value;
+            if (val.startsWith('#') && val.length === 7) {
+                routeColorInput.value = val;
+            } else if (!val.startsWith('#') && val.length === 6) {
+                routeColorInput.value = '#' + val;
+            }
+        });
+
+        // Initialize Application Database IDs
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                lastStopId = parseInt(await generateNextId('stops', 0)) - 1;
+                lastRouteId = parseInt(await generateNextId('routes', 0)) - 1;
+                lastSegmentId = parseInt(await generateNextId('route_segments', 0)) - 1;
+                console.log("Database synced. Next IDs calculated.", { lastStopId, lastRouteId, lastSegmentId });
+            } catch (error) {
+                console.error("Initialization ID loading failed", error);
+            }
+            await showSection('search-container');
+        });
+
+        /* ==================== 1. SEARCH ROUTES SYSTEM ==================== */
+        async function loadStopsIntoDropdowns() {
+            try {
+                const stopsSnapshot = await getDocs(collection(db, 'stops'));
+                allStops = stopsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                populateDropdown(originSelect, allStops, "เลือกจุดเริ่มต้น");
+                populateDropdown(destinationSelect, allStops, "เลือกจุดปลายทาง");
+            } catch (error) {
+                console.error("Failed to load stops to dropdowns", error);
+                showToast("ไม่สามารถโหลดพิกัดจุดจอดมาแสดงผลได้", "error");
+            }
+        }
+
+        function populateDropdown(selectElement, stopsData, defaultText) {
+            selectElement.innerHTML = `<option value="">-- ${defaultText} --</option>`;
+            
+            const sorted = [...stopsData].sort((a, b) => a.name.localeCompare(b.name, 'th'));
+            sorted.forEach(stop => {
+                const option = document.createElement('option');
+                option.value = stop.id;
+                option.textContent = stop.name;
+                selectElement.appendChild(option);
+            });
+        }
+
+        async function findRoute() {
+            resultsContainer.innerHTML = '';
+            const originStopId = originSelect.value;
+            const destinationStopId = destinationSelect.value;
+
+            if (!originStopId || !destinationStopId) {
+                showToast('กรุณาระบุจุดเริ่มต้นและปลายทางให้เรียบร้อย', 'error');
+                return;
+            }
+
+            if (originStopId === destinationStopId) {
+                showToast('จุดเริ่มต้นและจุดปลายทางเป็นจุดเดียวกันไม่ได้', 'error');
+                return;
+            }
+
+            loadingMessage.classList.remove('hidden');
+
+            try {
+                const routesSnapshot = await getDocs(collection(db, 'routes'));
+                allRoutes = routesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                const foundRoutes = [];
+                for (const route of allRoutes) {
+                    const stopsInRoute = route.stops || [];
+                    const originStop = stopsInRoute.find(s => s.stopId === originStopId);
+                    const destinationStop = stopsInRoute.find(s => s.stopId === destinationStopId);
+
+                    // Origin stop must be before destination in order sequence
+                    if (originStop && destinationStop && originStop.order < destinationStop.order) {
+                        foundRoutes.push(route);
+                    }
+                }
+
+                displayFoundRoutes(foundRoutes, allStops);
+            } catch (error) {
+                console.error("Error finding route paths", error);
+                showToast("เกิดข้อผิดพลาดในการเชื่อมต่อเพื่อหาเส้นทาง: " + error.message, "error");
+            } finally {
+                loadingMessage.classList.add('hidden');
+            }
+        }
+
+        function displayFoundRoutes(routes, allStopsData) {
+            if (routes.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="bg-amber-50 border border-amber-200 text-amber-800 p-6 rounded-2xl text-center space-y-2">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl text-amber-500"></i>
+                        <h4 class="font-bold text-base">ไม่พบรถสองแถวสายตรง</h4>
+                        <p class="text-xs text-amber-700 max-w-md mx-auto">ขออภัยด้วยครับ ขณะนี้ระบบตรวจไม่พบสายรถที่สามารถวิ่งตรงจุดต่อจุดนี้ได้ อาจจำเป็นต้องเดินเท้าเชื่อมต่อหรือเปลี่ยนสายรถ</p>
+                    </div>`;
+                return;
+            }
+
+            resultsContainer.innerHTML = `<h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> พบรถสองแถวให้บริการ ${routes.length} สาย</h3>`;
+            
+            routes.forEach((route, index) => {
+                const routeCard = document.createElement('div');
+                routeCard.className = "bg-slate-50 border border-slate-100 rounded-2xl p-5 hover:border-orange-200 transition-all shadow-sm space-y-4";
+                
+                const color = route.color || '#f97316';
+                
+                // Card header with route representation line
+                routeCard.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-200/60 pb-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-4 h-4 rounded-full flex-shrink-0 border-2 border-white" style="background-color: ${color};"></span>
+                            <h3 class="font-bold text-slate-900 text-base">สายรถ: ${route.name}</h3>
+                        </div>
+                        <span class="text-xs bg-white text-slate-600 px-3 py-1.5 rounded-full border border-slate-200 font-semibold shadow-sm">
+                            <i class="fa-solid fa-info-circle text-orange-500 mr-1"></i> ID สาย: ${route.id}
+                        </span>
+                    </div>
+                    
+                    <div class="text-sm space-y-1">
+                        <p class="font-medium text-slate-700">รายละเอียดเส้นทางหลัก:</p>
+                        <p class="text-slate-500 text-xs leading-relaxed bg-white p-3 rounded-xl border border-slate-100">${route.description || 'ไม่มีคำอธิบายประกอบเส้นทาง'}</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <p class="text-sm font-semibold text-slate-700 flex items-center gap-1">
+                            <i class="fa-solid fa-map-location-dot text-slate-400"></i> ลำดับการหยุดรับ-ส่งของสายรถนี้:
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-1 items-center">
+                            <!-- Stops badge series will be dynamically injected here -->
+                        </div>
+                    </div>
+                `;
+
+                // Render stop sequence as flowchart badges
+                const sortedStops = Array.isArray(route.stops) ? [...route.stops].sort((a, b) => a.order - b.order) : [];
+                const badgesContainer = routeCard.querySelector('.flex-wrap');
+
+                sortedStops.forEach((stopRef, stopIdx) => {
+                    const stopData = allStopsData.find(s => s.id === stopRef.stopId);
+                    const stopBadge = document.createElement('div');
+                    
+                    const isOrigin = stopRef.stopId === originSelect.value;
+                    const isDest = stopRef.stopId === destinationSelect.value;
+                    
+                    let bgClass = "bg-white text-slate-700 border-slate-200";
+                    if (isOrigin) bgClass = "bg-emerald-50 text-emerald-800 border-emerald-300 ring-2 ring-emerald-300/30";
+                    if (isDest) bgClass = "bg-rose-50 text-rose-800 border-rose-300 ring-2 ring-rose-300/30";
+
+                    stopBadge.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${bgClass}`;
+                    stopBadge.innerHTML = `
+                        <span class="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center text-[10px] ${isOrigin || isDest ? 'text-white font-bold bg-orange-500' : 'text-slate-400'}">${stopRef.order}</span>
+                        <span>${stopData ? stopData.name : 'ไม่มีชื่อจุดจอด'}</span>
+                    `;
+
+                    badgesContainer.appendChild(stopBadge);
+
+                    // Add an arrow if not the last item
+                    if (stopIdx < sortedStops.length - 1) {
+                        const arrow = document.createElement('i');
+                        arrow.className = "fa-solid fa-chevron-right text-slate-300 text-[10px] mx-0.5";
+                        badgesContainer.appendChild(arrow);
+                    }
+                });
+
+                resultsContainer.appendChild(routeCard);
+            });
+        }
+
+        searchButton.addEventListener('click', findRoute);
+
+
+        /* ==================== 2. MANAGE STOPS SYSTEM ==================== */
+        async function handleAddEditStop() {
+            const name = stopNameInput.value.trim();
+            const latitude = parseFloat(stopLatInput.value) || null;
+            const longitude = parseFloat(stopLonInput.value) || null;
+
+            if (!name) {
+                showToast('กรุณากรอกชื่อจุดจอดให้เรียบร้อย', 'error');
+                return;
+            }
+
+            try {
+                if (editingStopId) {
+                    await setDoc(doc(db, 'stops', editingStopId), {
+                        name: name,
+                        latitude: latitude,
+                        longitude: longitude
+                    }, { merge: true });
+                    showToast(`แก้ไขข้อมูลจุดจอด "${name}" เรียบร้อยแล้ว`, 'success');
+                } else {
+                    const newStopId = await generateNextId('stops', lastStopId);
+                    await setDoc(doc(db, 'stops', newStopId), {
+                        name: name,
+                        latitude: latitude,
+                        longitude: longitude
+                    });
+                    showToast(`เพิ่มจุดจอด "${name}" เรียบร้อย!`, 'success');
+                    lastStopId = parseInt(newStopId, 10);
+                }
+                
+                clearAddStopForm();
+                await loadAllStopsForList();
+                await loadStopsIntoDropdowns();
+            } catch (error) {
+                console.error("Save Stop Error", error);
+                showToast(`เกิดข้อผิดพลาดในการบันทึกพิกัด: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadAllStopsForList() {
+            try {
+                const stopsSnapshot = await getDocs(collection(db, 'stops'));
+                allStops = stopsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                stopsCountBadge.textContent = `${allStops.length} จุดจอด`;
+                renderStopsList(allStops);
+            } catch (error) {
+                console.error("Error loading stops list", error);
+                allStopsList.innerHTML = `<div class="text-rose-500 text-xs font-semibold py-8 text-center">เกิดข้อผิดพลาดในการเชื่อมโยงข้อมูล</div>`;
+            }
+        }
+
+        function renderStopsList(stopsArray) {
+            allStopsList.innerHTML = '';
+            
+            if (stopsArray.length === 0) {
+                allStopsList.innerHTML = `<p class="text-center text-slate-400 py-12 text-sm">ไม่พบจุดจอดใด ๆ ในขณะนี้</p>`;
+                return;
+            }
+
+            stopsArray.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+            
+            stopsArray.forEach(stop => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/50 transition-all";
+                item.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                            ${stop.name}
+                            <span class="text-[10px] text-slate-400 font-normal">(ID: ${stop.id})</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 font-medium flex items-center gap-2">
+                            <span><i class="fa-solid fa-compass text-slate-400"></i> Lat: ${stop.latitude || 'ไม่ระบุ'}</span>
+                            <span>Lon: ${stop.longitude || 'ไม่ระบุ'}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-1.5 flex-shrink-0">
+                        <button class="edit-stop-btn text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-all" data-id="${stop.id}">
+                            <i class="fa-solid fa-pen-to-square mr-0.5"></i> แก้ไข
+                        </button>
+                        <button class="delete-stop-btn text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-all" data-id="${stop.id}">
+                            <i class="fa-solid fa-trash mr-0.5"></i> ลบ
+                        </button>
+                    </div>
+                `;
+
+                // Hook up edit/delete handlers
+                item.querySelector('.edit-stop-btn').addEventListener('click', () => editStop(stop.id));
+                item.querySelector('.delete-stop-btn').addEventListener('click', () => deleteStop(stop.id));
+
+                allStopsList.appendChild(item);
+            });
+        }
+
+        // Live filtration search for stops
+        searchStopInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const filtered = allStops.filter(s => s.name.toLowerCase().includes(query) || s.id.includes(query));
+            renderStopsList(filtered);
+        });
+
+        function editStop(stopId) {
+            const stop = allStops.find(s => s.id === stopId);
+            if (!stop) return;
+
+            editingStopId = stopId;
+            stopNameInput.value = stop.name || '';
+            stopLatInput.value = stop.latitude || '';
+            stopLonInput.value = stop.longitude || '';
+
+            document.getElementById('stopFormTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-blue-500"></i> กำลังแก้ไขจุดจอด (ID: ${stopId})`;
+            addStopButton.textContent = 'บันทึกการแก้ไขข้อมูล';
+            addStopButton.className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition-all duration-150 flex items-center justify-center gap-2";
+            cancelEditStopButton.classList.remove('hidden');
+
+            document.getElementById('stopName').focus();
+        }
+
+        async function deleteStop(stopId) {
+            // Check dependency: Is any route using this stop?
+            const routesUsingStop = allRoutes.filter(route => 
+                Array.isArray(route.stops) && route.stops.some(s => s.stopId === stopId)
+            );
+
+            let alertMsg = `คุณแน่ใจว่าต้องการลบจุดจอด ID: ${stopId} หรือไม่?`;
+            if (routesUsingStop.length > 0) {
+                const names = routesUsingStop.map(r => r.name).join(', ');
+                alertMsg = `⚠️ คำเตือน: จุดจอดนี้ถูกเชื่อมโยงไว้ในสายรถดังต่อไปนี้: [${names}]\nหากต้องการลบ ข้อมูลจุดจอดในสายเหล่านี้จะชำรุดทันที คุณยืนยันต้องการที่จะลบหรือไม่?`;
+            }
+
+            const confirmResult = await customConfirm(alertMsg);
+            if (!confirmResult) return;
+
+            try {
+                await deleteDoc(doc(db, 'stops', stopId));
+                showToast(`ลบข้อมูลจุดจอดเรียบร้อยแล้ว`, 'success');
+                
+                clearAddStopForm();
+                await loadAllStopsForList();
+                await loadStopsIntoDropdowns();
+            } catch (error) {
+                console.error("Failed to delete stop", error);
+                showToast(`ลบข้อมูลล้มเหลว: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAddStopForm() {
+            editingStopId = null;
+            stopNameInput.value = '';
+            stopLatInput.value = '';
+            stopLonInput.value = '';
+
+            document.getElementById('stopFormTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-orange-500"></i> เพิ่มจุดจอดใหม่`;
+            addStopButton.textContent = 'บันทึกจุดจอด';
+            addStopButton.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl transition-all duration-150 flex items-center justify-center gap-2";
+            cancelEditStopButton.classList.add('hidden');
+        }
+
+        addStopButton.addEventListener('click', handleAddEditStop);
+        cancelEditStopButton.addEventListener('click', clearAddStopForm);
+
+
+        /* ==================== 3. MANAGE ROUTES SYSTEM ==================== */
+        async function loadAllStopsForRouteForm() {
+            // Load stops into select option tags
+            try {
+                const stopsSnapshot = await getDocs(collection(db, 'stops'));
+                allStops = stopsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+                console.error("Failed to load stops for routes dropdown", error);
+            }
+        }
+
+        function addRouteStopInput(stopId = '', order = '') {
+            const index = routeStopsContainer.children.length + 1;
+            const container = document.createElement('div');
+            container.className = "route-stop-entry flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-xl";
+            
+            // Render select drop element filled with stops
+            const sortedStops = [...allStops].sort((a, b) => a.name.localeCompare(b.name, 'th'));
+            const optionsHtml = sortedStops.map(s => `<option value="${s.id}" ${s.id === stopId ? 'selected' : ''}>${s.name} (ID: ${s.id})</option>`).join('');
+
+            container.innerHTML = `
+                <span class="w-7 h-7 bg-orange-100 text-orange-600 font-bold rounded-full text-xs flex items-center justify-center flex-shrink-0 drag-handle">
+                    ${index}
+                </span>
+                <select class="route-stop-select flex-grow px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <option value="">-- เลือกจุดจอด --</option>
+                    ${optionsHtml}
+                </select>
+                <input type="number" class="route-stop-order w-16 px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs text-center font-bold text-slate-800" value="${order || index}" placeholder="ลำดับ" min="1">
+                <button type="button" class="remove-route-stop-btn text-rose-500 hover:text-rose-600 bg-white hover:bg-rose-50 p-2.5 rounded-lg border border-slate-200 transition-all flex items-center justify-center">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+            `;
+
+            // Adjust index sequence numbers dynamically if a stop is deleted
+            container.querySelector('.remove-route-stop-btn').addEventListener('click', () => {
+                container.remove();
+                reindexRouteStopsUI();
+            });
+
+            routeStopsContainer.appendChild(container);
+        }
+
+        function reindexRouteStopsUI() {
+            Array.from(routeStopsContainer.children).forEach((el, index) => {
+                const badge = el.querySelector('.drag-handle');
+                const orderInput = el.querySelector('.route-stop-order');
+                if (badge) badge.textContent = index + 1;
+                if (orderInput && !orderInput.dataset.manuallyEdited) {
+                    orderInput.value = index + 1;
+                }
+            });
+        }
+
+        addRouteStopBtn.addEventListener('click', () => addRouteStopInput());
+
+        async function saveRoute() {
+            const name = routeNameInput.value.trim();
+            const color = routeColorInput.value.trim();
+            const description = routeDescriptionInput.value.trim();
+            
+            const routeStops = [];
+            let isValid = true;
+            let stopOrderMap = new Map();
+            let stopIdMap = new Map();
+
+            const entries = routeStopsContainer.querySelectorAll('.route-stop-entry');
+            entries.forEach((entry, index) => {
+                const select = entry.querySelector('.route-stop-select');
+                const orderInput = entry.querySelector('.route-stop-order');
+                
+                const stopId = select.value;
+                const order = parseInt(orderInput.value, 10);
+
+                if (!stopId || isNaN(order) || order < 1) {
+                    isValid = false;
+                    showToast(`กรุณากรอกข้อมูลจุดจอดและลำดับให้ถูกต้องในแถวที่ ${index + 1}`, 'error');
+                    return;
+                }
+
+                if (stopOrderMap.has(order)) {
+                    isValid = false;
+                    showToast(`ลำดับคิวรถเบอร์ ${order} ซ้ำซ้อนกันกรุณาตรวจสอบ`, 'error');
+                    return;
+                }
+
+                if (stopIdMap.has(stopId)) {
+                    isValid = false;
+                    const stopName = allStops.find(s => s.id === stopId)?.name || stopId;
+                    showToast(`ตรวจพบจุดจอด "${stopName}" ซ้ำซ้อนในสายรถเดียวกัน`, 'error');
+                    return;
+                }
+
+                stopOrderMap.set(order, true);
+                stopIdMap.set(stopId, true);
+                routeStops.push({ stopId: stopId, order: order });
+            });
+
+            if (!name) {
+                showToast('กรุณากรอกชื่อเส้นทางเดินรถสองแถว', 'error');
+                return;
+            }
+
+            if (routeStops.length < 2) {
+                showToast('โปรดเลือกจุดจอดอย่างน้อย 2 จุดจอดเพื่อประกอบเป็นเส้นทาง', 'error');
+                return;
+            }
+
+            if (!isValid) return;
+
+            try {
+                const routeData = {
+                    name: name,
+                    color: color,
+                    description: description,
+                    stops: routeStops
+                };
+
+                let currentRouteId = editingRouteId;
+                
+                if (editingRouteId) {
+                    await setDoc(doc(db, 'routes', editingRouteId), routeData, { merge: true });
+                    showToast(`อัปเดตสายรถ "${name}" เรียบร้อย!`, 'success');
+                } else {
+                    const newRouteId = await generateNextId('routes', lastRouteId);
+                    await setDoc(doc(db, 'routes', newRouteId), routeData);
+                    currentRouteId = newRouteId;
+                    showToast(`บันทึกเพิ่มสายรถ "${name}" เรียบร้อย (ID: ${newRouteId})`, 'success');
+                    lastRouteId = parseInt(newRouteId, 10);
+                }
+
+                // Segments Management: Clean previous segment data associated with this route ID
+                const segmentsCollection = collection(db, 'route_segments');
+                const segmentsSnapshot = await getDocs(segmentsCollection);
+                
+                const batch = writeBatch(db);
+                
+                // Track down and delete obsolete segments for this current route
+                segmentsSnapshot.docs.forEach(segmentDoc => {
+                    if (segmentDoc.data().routeId === currentRouteId) {
+                        batch.delete(segmentDoc.ref);
+                    }
+                });
+
+                // Generate new segments combinations (Start-to-End combination mapping)
+                for (let i = 0; i < routeStops.length; i++) {
+                    for (let j = i + 1; j < routeStops.length; j++) {
+                        const startStop = routeStops[i];
+                        const endStop = routeStops[j];
+                        const newSegmentId = await generateNextId('route_segments', lastSegmentId);
+                        
+                        batch.set(doc(segmentsCollection, newSegmentId), {
+                            startStopId: startStop.stopId,
+                            endStopId: endStop.stopId,
+                            routeId: currentRouteId,
+                            routeOrderFrom: startStop.order,
+                            routeOrderTo: endStop.order
+                        });
+                        lastSegmentId = parseInt(newSegmentId, 10);
+                    }
+                }
+
+                await batch.commit();
+                showToast(`อัปเดตโครงข่าย Segments สองแถวเรียบร้อย`, 'success');
+                
+                clearRouteForm();
+                await loadAllRoutesForList();
+                await loadStopsIntoDropdowns();
+            } catch (error) {
+                console.error("Save Route Error", error);
+                showToast(`ไม่สามารถดำเนินการได้: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadAllRoutesForList() {
+            try {
+                const routesSnapshot = await getDocs(collection(db, 'routes'));
+                allRoutes = routesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                routesCountBadge.textContent = `${allRoutes.length} สายรถ`;
+                renderRoutesList();
+            } catch (error) {
+                console.error("Error loading routes list", error);
+                allRoutesList.innerHTML = `<div class="text-rose-500 text-xs font-semibold py-8 text-center">เกิดข้อผิดพลาดในการดึงสายรถ</div>`;
+            }
+        }
+
+        function renderRoutesList() {
+            allRoutesList.innerHTML = '';
+            
+            if (allRoutes.length === 0) {
+                allRoutesList.innerHTML = `<p class="text-center text-slate-400 py-12 text-sm">ไม่พบสายเดินรถใดในระบบ</p>`;
+                return;
+            }
+
+            allRoutes.forEach(route => {
+                const item = document.createElement('div');
+                item.className = "p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-slate-200 transition-all space-y-3";
+                
+                const countStops = route.stops ? route.stops.length : 0;
+                const rColor = route.color || '#e2e8f0';
+
+                item.innerHTML = `
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="space-y-1">
+                            <div class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                <span class="w-3.5 h-3.5 rounded-full border border-white shadow-sm flex-shrink-0" style="background-color: ${rColor};"></span>
+                                ${route.name}
+                                <span class="text-[10px] text-slate-400 font-normal">(ID: ${route.id})</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 leading-relaxed line-clamp-2">${route.description || 'ไม่มีข้อมูลเพิ่มเติม'}</p>
+                        </div>
+                        <span class="bg-white border border-slate-100 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 shadow-sm flex-shrink-0">
+                            ${countStops} จุดจอด
+                        </span>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-200/60">
+                        <span class="text-[10px] text-slate-400 italic">นครราชสีมา (โคราช)</span>
+                        <div class="flex gap-1">
+                            <button class="edit-route-btn text-[11px] font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-all" data-id="${route.id}">
+                                <i class="fa-solid fa-pen mr-0.5"></i> แก้ไข
+                            </button>
+                            <button class="delete-route-btn text-[11px] font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1.5 rounded-lg transition-all" data-id="${route.id}">
+                                <i class="fa-solid fa-trash mr-0.5"></i> ลบ
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                // Edit and Delete Event Handlers
+                item.querySelector('.edit-route-btn').addEventListener('click', () => editRoute(route.id));
+                item.querySelector('.delete-route-btn').addEventListener('click', () => deleteRoute(route.id));
+
+                allRoutesList.appendChild(item);
+            });
+        }
+
+        function editRoute(routeId) {
+            const route = allRoutes.find(r => r.id === routeId);
+            if (!route) return;
+
+            editingRouteId = routeId;
+            routeNameInput.value = route.name || '';
+            routeColorInput.value = route.color || '#f97316';
+            routeColorHex.value = (route.color || '#f97316').toUpperCase();
+            routeDescriptionInput.value = route.description || '';
+            
+            routeStopsContainer.innerHTML = '';
+            
+            if (Array.isArray(route.stops)) {
+                // Populate existing stop entries inside form
+                const sorted = [...route.stops].sort((a, b) => a.order - b.order);
+                sorted.forEach(ref => {
+                    addRouteStopInput(ref.stopId, ref.order);
+                });
+            }
+
+            document.getElementById('routeFormTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-blue-500"></i> กำลังแก้ไขเส้นทาง (ID: ${routeId})`;
+            saveRouteButton.textContent = 'บันทึกข้อมูลแก้ไขเส้นทาง';
+            saveRouteButton.className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-all duration-150 flex items-center justify-center gap-2 shadow-sm";
+            cancelEditRouteButton.classList.remove('hidden');
+
+            document.getElementById('routeName').focus();
+        }
+
+        async function deleteRoute(routeId) {
+            const confirmResult = await customConfirm(`คุณแน่ใจหรือไม่ว่าต้องการลบสายรถ ID: ${routeId}?\nข้อมูลเส้นทางและโครงข่าย Segments ที่เชื่อมต่อจะหายไปอย่างถาวร!`);
+            if (!confirmResult) return;
+
+            try {
+                // Delete route metadata document
+                await deleteDoc(doc(db, 'routes', routeId));
+
+                // Clean and delete associated segments
+                const segmentsCollection = collection(db, 'route_segments');
+                const segmentsSnapshot = await getDocs(segmentsCollection);
+                
+                const batch = writeBatch(db);
+                segmentsSnapshot.docs.forEach(segmentDoc => {
+                    if (segmentDoc.data().routeId === routeId) {
+                        batch.delete(segmentDoc.ref);
+                    }
+                });
+
+                await batch.commit();
+                showToast(`ลบสายรถและ segments สำเร็จแล้ว`, 'success');
+                
+                clearRouteForm();
+                await loadAllRoutesForList();
+                await loadStopsIntoDropdowns();
+            } catch (error) {
+                console.error("Delete Route Error", error);
+                showToast(`การลบล้มเหลว: ${error.message}`, 'error');
+            }
+        }
+
+        function clearRouteForm() {
+            editingRouteId = null;
+            routeNameInput.value = '';
+            routeColorInput.value = '#f97316';
+            routeColorHex.value = '#F97316';
+            routeDescriptionInput.value = '';
+            routeStopsContainer.innerHTML = '';
+            
+            // Add initial empty dynamic stop input rows
+            addRouteStopInput();
+            addRouteStopInput();
+
+            document.getElementById('routeFormTitle').innerHTML = `<i class="fa-solid fa-route text-orange-500"></i> เพิ่มเส้นทางใหม่`;
+            saveRouteButton.textContent = 'บันทึกข้อมูลเส้นทาง';
+            saveRouteButton.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition-all duration-150 flex items-center justify-center gap-2 shadow-sm";
+            cancelEditRouteButton.classList.add('hidden');
+        }
+
+        saveRouteButton.addEventListener('click', saveRoute);
+        cancelEditRouteButton.addEventListener('click', clearRouteForm);
 
     </script>
 </body>
