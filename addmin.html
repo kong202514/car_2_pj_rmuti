@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="th">
 
 <head>
@@ -155,7 +155,7 @@
         </section>
 
         <!-- ส่วนที่ 3: จัดการเส้นทางเดินรถ -->
-        <section id="manage-routes-container" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 transition-all">
+        <section id="manage-routes-container" style="height: calc(100vh - 200px);" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 transition-all">
             <!-- ซ้าย: ฟอร์มเพิ่ม/แก้ไขสายรถ -->
             <div class="lg:col-span-6 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
                 <div class="border-b border-slate-100 pb-3">
@@ -164,7 +164,7 @@
                     </h2>
                 </div>
 
-                <div class="space-y-3">
+                <div style="height: calc(100vh - 200px);" class="space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="sm:col-span-2 space-y-1">
                             <label class="text-xs font-semibold text-slate-600">ชื่อเส้นทาง (สายรถ) <span class="text-rose-500">*</span></label>
@@ -185,7 +185,7 @@
                     </div>
 
                     <!-- แทรกจุดจอดในเส้นทาง (จัดลำดับออโต้) -->
-                    <div class="border-t border-slate-100 pt-3 space-y-2">
+                    <div style="height: calc(100vh - 200px);" class="border-t border-slate-100 pt-3 space-y-2">
                         <div class="flex justify-between items-center">
                             <label class="text-xs font-bold text-slate-700">
                                 <i class="fa-solid fa-map-marked text-orange-500"></i> ลำดับจุดจอดที่วิ่งผ่าน
@@ -196,7 +196,7 @@
                         </div>
 
                         <!-- รายการจุดจอดที่ถูกสับเปลี่ยนและจัดลำดับอัตโนมัติ -->
-                        <div id="routeStopsContainer" class="space-y-2 max-h-[220px] overflow-y-auto pr-1"></div>
+                        <div id="routeStopsContainer" style="height: calc(100vh - 200px);"class="space-y-2 max-h-[220px]   pr-1"></div>
                     </div>
                 </div>
 
@@ -227,11 +227,7 @@
 
     </main>
 
-    <!-- ล่างสุด (Footer) -->
-    <footer class="bg-slate-950 text-slate-400 py-6 text-center text-[11px] border-t border-slate-900 mt-12">
-        <p class="font-bold text-slate-300">ระบบอำนวยความสะดวกการเดินรถสองแถว นครราชสีมา</p>
-        <p class="mt-1">พัฒนาร่วมกับระบบ Cloud Firestore เพื่อการเชื่อมโยงข้อมูลที่รวดเร็วและเป็นระเบียบ</p>
-    </footer>
+ 
 
     <!-- หน้าต่างป๊อปอัพเพื่อขอยืนยันการลบ (Custom Confirmation Modal) -->
     <div id="custom-confirm-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
